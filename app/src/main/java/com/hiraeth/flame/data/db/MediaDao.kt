@@ -25,6 +25,10 @@ interface MediaDao {
     @Update
     suspend fun update(entity: MediaEntity)
 
+    // Targeted metadata update query to prevent Room from wiping active input text fields
+    @Query("UPDATE media SET displayName = :title, description = :description WHERE id = :id")
+    suspend fun updateMetadata(id: Long, title: String, description: String)
+
     @Delete
     suspend fun delete(entity: MediaEntity)
 

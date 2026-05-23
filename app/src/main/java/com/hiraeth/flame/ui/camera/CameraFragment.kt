@@ -7,6 +7,7 @@ import android.view.LayoutInflater
 import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -107,7 +108,34 @@ class CameraFragment : Fragment() {
                     }
 
                     override fun onImageSaved(output: ImageCapture.OutputFileResults) {
-                        viewModel.onPhotoSaved(file)
+                        val detailsDialog = CaptureDetailsDialogFragment.newInstance()
+                        detailsDialog.setListeners(
+                            onSaved = { typedTitle, typedDescription ->
+                                viewLifecycleOwner.lifecycleScope.launch {
+                                    try {
+                                        val newMediaId = container.mediaRepository.registerCapturedPhoto(
+                                            file,
+                                            typedTitle,
+                                            typedDescription
+                                        )
+                                        Toast.makeText(requireContext(), "Changes saved successfully", Toast.LENGTH_SHORT).show()
+
+                                        // ✅ FIXED: Direct navigation to the Detail Fragment destination ID
+                                        findNavController().navigate(
+                                            R.id.mediaDetailFragment,
+                                            androidx.core.os.bundleOf("mediaId" to newMediaId)
+                                        )
+                                    } catch (e: Exception) {
+                                        Toast.makeText(requireContext(), "Save failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                            },
+                            onCancelled = {
+                                if (file.exists()) file.delete()
+                                Toast.makeText(requireContext(), "Capture discarded", Toast.LENGTH_SHORT).show()
+                            }
+                        )
+                        detailsDialog.show(childFragmentManager, "capture_details_entry")
                     }
                 },
             )
@@ -135,7 +163,34 @@ class CameraFragment : Fragment() {
                                 viewModel.setRecording(false)
                                 activeRecording = null
                                 if (!event.hasError()) {
-                                    viewModel.onVideoSaved(file)
+                                    val detailsDialog = CaptureDetailsDialogFragment.newInstance()
+                                    detailsDialog.setListeners(
+                                        onSaved = { typedTitle, typedDescription ->
+                                            viewLifecycleOwner.lifecycleScope.launch {
+                                                try {
+                                                    val newMediaId = container.mediaRepository.registerCapturedVideo(
+                                                        file,
+                                                        typedTitle,
+                                                        typedDescription
+                                                    )
+                                                    Toast.makeText(requireContext(), "Changes saved successfully", Toast.LENGTH_SHORT).show()
+
+                                                    // ✅ FIXED: Direct navigation to the Detail Fragment destination ID
+                                                    findNavController().navigate(
+                                                        R.id.mediaDetailFragment,
+                                                        androidx.core.os.bundleOf("mediaId" to newMediaId)
+                                                    )
+                                                } catch (e: Exception) {
+                                                    Toast.makeText(requireContext(), "Save failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
+                                                }
+                                            }
+                                        },
+                                        onCancelled = {
+                                            if (file.exists()) file.delete()
+                                            Toast.makeText(requireContext(), "Capture discarded", Toast.LENGTH_SHORT).show()
+                                        }
+                                    )
+                                    detailsDialog.show(childFragmentManager, "capture_details_entry")
                                 }
                             }
                         }
@@ -147,20 +202,12 @@ class CameraFragment : Fragment() {
             }
         }
 
-        binding.btnOrientation.setOnClickListener {
-            viewModel.toggleOrientation()
-        }
-
         // Initialize orientation button label
         updateOrientationButtonLabel()
     }
 
     private fun updateOrientationButtonLabel() {
         val orientation = viewModel.captureOrientation.value
-        binding.btnOrientation.text = when (orientation) {
-            CaptureOrientation.PORTRAIT -> "📱\nPortrait"
-            CaptureOrientation.LANDSCAPE -> "🔄\nLandscape"
-        }
     }
 
     private fun bindCameraUseCases() {

@@ -64,7 +64,8 @@
                     android:layout_weight="1"
                     android:layout_marginEnd="8dp"
                     android:text="Edit"
-                    app:icon="@drawable/ic_edit" />
+                    app:icon="@drawable/ic_edit"
+                    app:iconTint="@color/neon_violet" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_filter"
@@ -73,7 +74,8 @@
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
                     android:text="Filter"
-                    app:icon="@drawable/ic_filter" />
+                    app:icon="@drawable/ic_filter"
+                    app:iconTint="@color/neon_violet" />
             </LinearLayout>
 
             <androidx.recyclerview.widget.RecyclerView

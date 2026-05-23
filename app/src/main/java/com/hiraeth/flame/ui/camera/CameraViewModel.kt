@@ -58,17 +58,19 @@ class CameraViewModel(
         _lastMessage.value = null
     }
 
-    fun onPhotoSaved(file: java.io.File) {
+    // ✅ FIXED: Updated function signatures to take title and description inputs from the UI dialog
+    fun onPhotoSaved(file: java.io.File, title: String, description: String) {
         viewModelScope.launch {
-            runCatching { repository.registerCapturedPhoto(file) }
+            runCatching { repository.registerCapturedPhoto(file, title, description) }
                 .onSuccess { _lastMessage.value = "Photo saved to library" }
                 .onFailure { _lastMessage.value = it.message ?: "Save failed" }
         }
     }
 
-    fun onVideoSaved(file: java.io.File) {
+    // ✅ FIXED: Updated function signatures to take title and description inputs from the UI dialog
+    fun onVideoSaved(file: java.io.File, title: String, description: String) {
         viewModelScope.launch {
-            runCatching { repository.registerCapturedVideo(file) }
+            runCatching { repository.registerCapturedVideo(file, title, description) }
                 .onSuccess { _lastMessage.value = "Video saved to library" }
                 .onFailure { _lastMessage.value = it.message ?: "Save failed" }
         }

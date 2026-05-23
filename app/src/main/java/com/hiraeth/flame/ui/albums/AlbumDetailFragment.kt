@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.TextView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -70,10 +71,14 @@ class AlbumDetailFragment : Fragment() {
     private fun showEditAlbumDialog() {
         val awm = viewModel.albumWithMedia.value ?: return
         val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_new_album, null)
+
         val inputName = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.album_name_input)
         val inputDesc = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.description_input)
         val btnCancel = dialogView.findViewById<View>(R.id.btn_cancel)
         val btnCreate = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_create)
+
+        val titleText = (dialogView as? ViewGroup)?.let { findFirstTextView(it) }
+        titleText?.text = "Edit Album"
 
         inputName.setText(awm.album.name)
         inputDesc.setText(awm.album.description)
@@ -96,20 +101,63 @@ class AlbumDetailFragment : Fragment() {
     }
 
     private fun showFilterDialog() {
-        val input = com.google.android.material.textfield.TextInputEditText(requireContext())
-        input.hint = "Search title or description..."
-        input.setText(viewModel.filter.value)
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_new_album, null)
 
-        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
-            .setTitle("Filter Media")
-            .setView(input)
-            .setPositiveButton("Apply") { _, _ ->
-                viewModel.setFilter(input.text?.toString().orEmpty())
+        val inputFilter = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.album_name_input)
+        val inputDesc = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.description_input)
+        val btnCancel = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_cancel)
+        val btnApply = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_create)
+
+        val titleText = (dialogView as? ViewGroup)?.let { findFirstTextView(it) }
+        titleText?.text = "Filter Media"
+
+        // Remove the hardcoded text hint placeholder and update the text field label
+        inputFilter.hint = null
+        inputFilter.setText(viewModel.filter.value)
+
+        // Safely updates the TextInputLayout floating hint label wrapper if it exists
+        (inputFilter.parent?.parent as? com.google.android.material.textfield.TextInputLayout)?.hint = "Anything from the album"
+        (inputFilter.parent as? com.google.android.material.textfield.TextInputLayout)?.hint = "Anything from the album"
+
+        inputDesc?.visibility = View.GONE
+        (inputDesc?.parent as? View)?.visibility = View.GONE
+        (inputDesc?.parent?.parent as? View)?.let { grandParent ->
+            if (grandParent !is ViewGroup || grandParent.id != dialogView.id) {
+                grandParent.visibility = View.GONE
             }
-            .setNegativeButton("Clear") { _, _ ->
-                viewModel.setFilter("")
+        }
+
+        btnCancel.text = "Clear"
+        btnApply.text = "Apply"
+
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setView(dialogView)
+            .create()
+
+        btnCancel.setOnClickListener {
+            viewModel.setFilter("")
+            dialog.dismiss()
+        }
+
+        btnApply.setOnClickListener {
+            viewModel.setFilter(inputFilter.text?.toString().orEmpty())
+            dialog.dismiss()
+        }
+
+        dialog.show()
+    }
+
+    private fun findFirstTextView(viewGroup: ViewGroup): TextView? {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            if (child is TextView && child !is com.google.android.material.button.MaterialButton && child !is com.google.android.material.textfield.TextInputEditText) {
+                return child
+            } else if (child is ViewGroup) {
+                val found = findFirstTextView(child)
+                if (found != null) return found
             }
-            .show()
+        }
+        return null
     }
 
     override fun onDestroyView() {

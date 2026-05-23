@@ -31,7 +31,7 @@ class MediaRepository(
         dao.delete(entity)
     }
 
-    suspend fun importFromUri(uri: Uri, suggestedName: String, isVideo: Boolean): Long =
+    suspend fun importFromUri(uri: Uri, suggestedName: String, description: String, isVideo: Boolean): Long =
         withContext(Dispatchers.IO) {
             val (file, mime) = storage.importFromUri(uri, isVideo)
             val dims = if (isVideo) videoDimensionsAndDuration(file) else imageDimensions(file)
@@ -44,27 +44,32 @@ class MediaRepository(
                 width = dims.first,
                 height = dims.second,
                 durationMs = dims.third,
+                description = description.trim()
             )
             dao.insert(entity)
         }
 
-    suspend fun registerCapturedPhoto(file: File): Long = insertFileRecord(file, isVideo = false)
+    // ✅ FIXED: Takes both custom title and description strings passed from your camera UI capture workflow
+    suspend fun registerCapturedPhoto(file: File, title: String, description: String): Long =
+        insertFileRecord(file, isVideo = false, title, description)
 
-    suspend fun registerCapturedVideo(file: File): Long = insertFileRecord(file, isVideo = true)
+    suspend fun registerCapturedVideo(file: File, title: String, description: String): Long =
+        insertFileRecord(file, isVideo = true, title, description)
 
-    private suspend fun insertFileRecord(file: File, isVideo: Boolean): Long =
+    private suspend fun insertFileRecord(file: File, isVideo: Boolean, title: String, description: String): Long =
         withContext(Dispatchers.IO) {
             val mime = if (isVideo) "video/mp4" else "image/jpeg"
             val dims = if (isVideo) videoDimensionsAndDuration(file) else imageDimensions(file)
             val entity = MediaEntity(
                 relativePath = storage.relativeToRoot(file),
-                displayName = "",
+                displayName = title.trim(),
                 mimeType = mime,
                 isVideo = isVideo,
                 sizeBytes = file.length(),
                 width = dims.first,
                 height = dims.second,
                 durationMs = dims.third,
+                description = description.trim() // ✅ Saves metadata cleanly to SQLite on device capture
             )
             dao.insert(entity)
         }

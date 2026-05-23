@@ -19,12 +19,19 @@ class ImportPreviewViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
-    fun import(uri: Uri, displayName: String, isVideo: Boolean, onImported: (Long) -> Unit) {
+    fun import(
+        uri: Uri,
+        displayName: String,
+        description: String,
+        isVideo: Boolean,
+        onImported: (Long) -> Unit
+    ) {
         viewModelScope.launch {
             _busy.value = true
             _error.value = null
             runCatching {
-                repository.importFromUri(uri, displayName, isVideo)
+                // Passes title, description, and metadata down cleanly into repository layer function
+                repository.importFromUri(uri, displayName, description, isVideo)
             }.onSuccess { id ->
                 onImported(id)
             }.onFailure {

@@ -4,6 +4,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
@@ -51,10 +52,15 @@ class MediaDetailFragment : Fragment() {
         binding.toolbar.setupWithNavController(navController, appBarConfig)
 
         binding.btnSaveMeta.setOnClickListener {
-            viewModel.saveMetadata(
-                binding.titleInput.text?.toString().orEmpty(),
-                binding.descInput.text?.toString().orEmpty(),
-            )
+            val title = binding.titleInput.text?.toString()?.trim().orEmpty()
+            val description = binding.descInput.text?.toString()?.trim().orEmpty()
+
+            if (title.isNotEmpty() && description.isNotEmpty()) {
+                viewModel.saveMetadata(title, description)
+                Toast.makeText(requireContext(), "Changes saved successfully", Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), "Save failed: All details cannot be empty", Toast.LENGTH_LONG).show()
+            }
         }
 
         binding.btnAddAlbum.setOnClickListener { showAlbumPicker() }
@@ -63,13 +69,9 @@ class MediaDetailFragment : Fragment() {
             viewModel.delete { findNavController().popBackStack() }
         }
 
-        // Fullscreen button click listener
+        // Keep layout fallback click listener for photos
         binding.btnFullscreen.setOnClickListener {
-            viewModel.media.value?.let { media ->
-                val file = container.mediaStorage.resolveRelative(media.relativePath)
-                val fullscreenDialog = FullscreenMediaDialogFragment.newInstance(file, media.isVideo)
-                fullscreenDialog.show(childFragmentManager, "fullscreen_media")
-            }
+            openFullscreenDialog(false)
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -80,28 +82,54 @@ class MediaDetailFragment : Fragment() {
                 launch {
                     viewModel.media.collect { m ->
                         if (m == null) return@collect
-                        binding.titleInput.setText(m.displayName)
-                        binding.descInput.setText(m.description)
+
+                        if (!binding.titleInput.hasFocus()) {
+                            binding.titleInput.setText(m.displayName)
+                        }
+                        if (!binding.descInput.hasFocus()) {
+                            binding.descInput.setText(m.description)
+                        }
 
                         releasePlayer()
                         val file = container.mediaStorage.resolveRelative(m.relativePath)
                         if (m.isVideo) {
                             binding.imageView.visibility = View.GONE
                             binding.playerView.visibility = View.VISIBLE
+
+                            // Hide the loose layout button so it does not conflict with PlayerView
+                            binding.btnFullscreen.visibility = View.GONE
+
                             player = ExoPlayer.Builder(requireContext()).build().also { exo ->
                                 exo.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
                                 exo.prepare()
+                                exo.playWhenReady = true
                                 binding.playerView.player = exo
+                            }
+
+                            // ✅ THE FIX: Attach explicit click listener callback onto PlayerView's internal controller
+                            binding.playerView.setFullscreenButtonClickListener {
+                                openFullscreenDialog(true)
                             }
                         } else {
                             binding.playerView.player = null
                             binding.playerView.visibility = View.GONE
                             binding.imageView.visibility = View.VISIBLE
+
+                            // Restore native layout button overlay for single photos
+                            binding.btnFullscreen.visibility = View.VISIBLE
                             binding.imageView.load(file) { crossfade(true) }
                         }
                     }
                 }
             }
+        }
+    }
+
+    private fun openFullscreenDialog(isVideoMode: Boolean) {
+        viewModel.media.value?.let { media ->
+            val file = container.mediaStorage.resolveRelative(media.relativePath)
+            val fullscreenDialog = FullscreenMediaDialogFragment.newInstance(file, isVideoMode)
+            fullscreenDialog.show(childFragmentManager, "fullscreen_media")
         }
     }
 

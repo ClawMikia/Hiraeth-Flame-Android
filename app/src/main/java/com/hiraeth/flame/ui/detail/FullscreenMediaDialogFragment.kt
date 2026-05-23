@@ -4,6 +4,9 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
@@ -84,15 +87,32 @@ class FullscreenMediaDialogFragment : DialogFragment() {
         }
     }
 
+    override fun onStart() {
+        super.onStart()
+        dialog?.window?.let { dialogWindow ->
+            // Force the dialog's window container layout to use complete screen real estate
+            dialogWindow.setLayout(
+                WindowManager.LayoutParams.MATCH_PARENT,
+                WindowManager.LayoutParams.MATCH_PARENT
+            )
+            // Properly configure navigation bar color to solid black
+            dialogWindow.navigationBarColor = ContextCompat.getColor(requireContext(), android.R.color.black)
+        }
+    }
+
     private fun hideSystemUI() {
-        val windowInsetsController = WindowInsetsControllerCompat(requireActivity().window, binding.root)
-        windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
-        windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        dialog?.window?.let { dialogWindow ->
+            val windowInsetsController = WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView)
+            windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+            windowInsetsController.systemBarsBehavior = WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+        }
     }
 
     private fun showSystemUI() {
-        val windowInsetsController = WindowInsetsControllerCompat(requireActivity().window, binding.root)
-        windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+        dialog?.window?.let { dialogWindow ->
+            val windowInsetsController = WindowCompat.getInsetsController(dialogWindow, dialogWindow.decorView)
+            windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
+        }
     }
 
     override fun onDestroyView() {

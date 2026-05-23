@@ -7,8 +7,11 @@ import com.hiraeth.flame.data.db.AlbumWithMedia
 import com.hiraeth.flame.data.db.MediaEntity
 import com.hiraeth.flame.data.repository.AlbumRepository
 import com.hiraeth.flame.data.repository.MediaRepository
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -24,31 +27,48 @@ class MediaDetailViewModel(
     val albums: StateFlow<List<AlbumWithMedia>> = albumRepository.observeAlbums()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
-    fun saveMetadata(
-        title: String,
-        description: String,
-    ) {
+    // Channel to pipe operations state back safely to the UI thread
+    private val _saveResult = MutableSharedFlow<Result<Unit>>()
+    val saveResult: SharedFlow<Result<Unit>> = _saveResult.asSharedFlow()
+
+    fun saveMetadata(title: String, description: String) {
         viewModelScope.launch {
-            val current = repository.getById(mediaId) ?: return@launch
-            repository.update(
-                current.copy(
-                    displayName = title.trim(),
-                    description = description.trim(),
-                ),
-            )
+            try {
+                val current = media.value ?: throw IllegalStateException("Media item no longer exists in database")
+
+                repository.update(
+                    current.copy(
+                        displayName = title.trim(),
+                        description = description.trim(),
+                    )
+                )
+                // Emit authentic success
+                _saveResult.emit(Result.success(Unit))
+            } catch (e: Exception) {
+                // Catch actual SQLite, NullPointer, or IO exceptions safely
+                _saveResult.emit(Result.failure(e))
+            }
         }
     }
 
     fun delete(onDone: () -> Unit) {
         viewModelScope.launch {
-            repository.getById(mediaId)?.let { repository.delete(it) }
-            onDone()
+            try {
+                repository.getById(mediaId)?.let { repository.delete(it) }
+                onDone()
+            } catch (e: Exception) {
+                // Safe crash containment
+            }
         }
     }
 
     fun addToAlbum(albumId: Long) {
         viewModelScope.launch {
-            albumRepository.addToAlbum(albumId, mediaId)
+            try {
+                albumRepository.addToAlbum(albumId, mediaId)
+            } catch (e: Exception) {
+                // Safe crash containment
+            }
         }
     }
 

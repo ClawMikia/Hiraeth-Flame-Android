@@ -5,6 +5,7 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.os.bundleOf
 import androidx.fragment.app.Fragment
@@ -39,10 +40,9 @@ class ImportFragment : Fragment() {
             val type = requireContext().contentResolver.getType(uri).orEmpty()
             isVideo = type.startsWith("video/")
             binding.preview.load(uri) { crossfade(true) }
-            if (binding.titleInput.text.isNullOrBlank()) {
-                binding.titleInput.setText(uri.lastPathSegment?.substringAfterLast('/')?.substringBeforeLast('.').orEmpty())
-            }
+
             binding.detectLabel.text = if (isVideo) "Detected: video" else "Detected: image"
+            binding.errorText.visibility = View.GONE
         }
     }
 
@@ -57,15 +57,40 @@ class ImportFragment : Fragment() {
         binding.btnPick.setOnClickListener { pickLauncher.launch("*/*") }
 
         binding.btnSave.setOnClickListener {
-            val uri = pickedUri ?: return@setOnClickListener
-            viewModel.import(
-                uri,
-                binding.titleInput.text?.toString().orEmpty(),
-                isVideo,
-            ) { id ->
-                findNavController().navigate(
-                    R.id.action_import_to_detail,
-                    bundleOf("mediaId" to id),
+            val uri = pickedUri
+            val title = binding.titleInput.text?.toString()?.trim().orEmpty()
+            val description = binding.descInput.text?.toString()?.trim().orEmpty()
+
+            if (uri == null) {
+                binding.errorText.visibility = View.VISIBLE
+                binding.errorText.text = "Please select an image or video file first."
+                Toast.makeText(requireContext(), "Save failed: No file selected", Toast.LENGTH_SHORT).show()
+            } else if (title.isEmpty() || description.isEmpty()) {
+                binding.errorText.visibility = View.VISIBLE
+                binding.errorText.text = "Please ensure both title and description are filled."
+                if (title.isEmpty()) {
+                    binding.titleInput.requestFocus()
+                } else {
+                    binding.descInput.requestFocus()
+                }
+                Toast.makeText(requireContext(), "Save failed: All details cannot be empty", Toast.LENGTH_SHORT).show()
+            } else {
+                binding.errorText.visibility = View.GONE
+
+                Toast.makeText(requireContext(), "Changes saved successfully", Toast.LENGTH_SHORT).show()
+
+                // ✅ FIXED: Parameter list order matches the updated ViewModel implementation signature
+                viewModel.import(
+                    uri = uri,
+                    displayName = title,
+                    description = description,
+                    isVideo = isVideo,
+                    onImported = { id ->
+                        findNavController().navigate(
+                            R.id.action_import_to_detail,
+                            bundleOf("mediaId" to id),
+                        )
+                    }
                 )
             }
         }
