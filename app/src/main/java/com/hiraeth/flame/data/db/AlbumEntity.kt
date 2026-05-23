@@ -7,7 +7,6 @@ import androidx.room.PrimaryKey
 data class AlbumEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
     val name: String,
-    /** User-defined grouping (e.g. Travel, Work). */
-    val category: String = "General",
+    val description: String = "",
     val createdAtEpochMs: Long = System.currentTimeMillis(),
 )

@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
+import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import androidx.camera.core.CameraSelector
@@ -77,6 +78,12 @@ class CameraFragment : Fragment() {
                     viewModel.lensFacing.collect { bindCameraUseCases() }
                 }
                 launch {
+                    viewModel.captureOrientation.collect {
+                        bindCameraUseCases()
+                        updateOrientationButtonLabel()
+                    }
+                }
+                launch {
                     viewModel.recording.collect { rec ->
                         binding.btnRecord.text = if (rec) "Stop" else "Record"
                     }
@@ -139,6 +146,21 @@ class CameraFragment : Fragment() {
                 viewModel.setRecording(false)
             }
         }
+
+        binding.btnOrientation.setOnClickListener {
+            viewModel.toggleOrientation()
+        }
+
+        // Initialize orientation button label
+        updateOrientationButtonLabel()
+    }
+
+    private fun updateOrientationButtonLabel() {
+        val orientation = viewModel.captureOrientation.value
+        binding.btnOrientation.text = when (orientation) {
+            CaptureOrientation.PORTRAIT -> "📱\nPortrait"
+            CaptureOrientation.LANDSCAPE -> "🔄\nLandscape"
+        }
     }
 
     private fun bindCameraUseCases() {
@@ -152,13 +174,19 @@ class CameraFragment : Fragment() {
                 }
                 val facing = viewModel.lensFacing.value
                 val selector = CameraSelector.Builder().requireLensFacing(facing).build()
+                val targetRotation = viewModel.getTargetRotation()
+
                 val capture = ImageCapture.Builder()
-                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MINIMIZE_LATENCY)
+                    .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
+                    .setTargetRotation(targetRotation)
                     .build()
+
                 val recorder = Recorder.Builder()
-                    .setQualitySelector(QualitySelector.from(Quality.HD))
+                    .setQualitySelector(QualitySelector.from(Quality.HIGHEST))
                     .build()
+
                 val video = VideoCapture.withOutput(recorder)
+
                 try {
                     cameraProvider.unbindAll()
                     cameraProvider.bindToLifecycle(

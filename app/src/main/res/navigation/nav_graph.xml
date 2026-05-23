@@ -35,6 +35,22 @@
         <action
             android:id="@+id/action_albums_to_detail"
             app:destination="@id/mediaDetailFragment" />
+        <action
+            android:id="@+id/action_albums_to_albumDetail"
+            app:destination="@id/albumDetailFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/albumDetailFragment"
+        android:name="com.hiraeth.flame.ui.albums.AlbumDetailFragment"
+        android:label="Album"
+        tools:layout="@layout/fragment_album_detail">
+        <argument
+            android:name="albumId"
+            app:argType="long" />
+        <action
+            android:id="@+id/action_albumDetail_to_detail"
+            app:destination="@id/mediaDetailFragment" />
     </fragment>
 
     <fragment
@@ -54,32 +70,6 @@
         android:name="com.hiraeth.flame.ui.detail.MediaDetailFragment"
         android:label="Details"
         tools:layout="@layout/fragment_media_detail">
-        <argument
-            android:name="mediaId"
-            app:argType="long" />
-        <action
-            android:id="@+id/action_detail_to_imageEditor"
-            app:destination="@id/imageEditorFragment" />
-        <action
-            android:id="@+id/action_detail_to_videoEditor"
-            app:destination="@id/videoEditorFragment" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/imageEditorFragment"
-        android:name="com.hiraeth.flame.ui.editor.ImageEditorFragment"
-        android:label="Image editor"
-        tools:layout="@layout/fragment_image_editor">
-        <argument
-            android:name="mediaId"
-            app:argType="long" />
-    </fragment>
-
-    <fragment
-        android:id="@+id/videoEditorFragment"
-        android:name="com.hiraeth.flame.ui.editor.VideoEditorFragment"
-        android:label="Video tools"
-        tools:layout="@layout/fragment_video_editor">
         <argument
             android:name="mediaId"
             app:argType="long" />

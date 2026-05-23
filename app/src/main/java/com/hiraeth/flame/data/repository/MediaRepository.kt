@@ -37,10 +37,9 @@ class MediaRepository(
             val dims = if (isVideo) videoDimensionsAndDuration(file) else imageDimensions(file)
             val entity = MediaEntity(
                 relativePath = storage.relativeToRoot(file),
-                displayName = suggestedName.ifBlank { file.nameWithoutExtension },
+                displayName = suggestedName.trim(),
                 mimeType = mime,
                 isVideo = isVideo,
-                createdAtEpochMs = System.currentTimeMillis(),
                 sizeBytes = file.length(),
                 width = dims.first,
                 height = dims.second,
@@ -59,10 +58,9 @@ class MediaRepository(
             val dims = if (isVideo) videoDimensionsAndDuration(file) else imageDimensions(file)
             val entity = MediaEntity(
                 relativePath = storage.relativeToRoot(file),
-                displayName = file.nameWithoutExtension,
+                displayName = "",
                 mimeType = mime,
                 isVideo = isVideo,
-                createdAtEpochMs = System.currentTimeMillis(),
                 sizeBytes = file.length(),
                 width = dims.first,
                 height = dims.second,

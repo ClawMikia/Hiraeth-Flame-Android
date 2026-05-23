@@ -40,12 +40,12 @@
                 android:layout_height="@dimen/media_detail_preview_height"
                 android:background="@color/bg_abyss">
 
-                <ImageView
+                <!-- Photo View with zoom support -->
+                <com.github.chrisbanes.photoview.PhotoView
                     android:id="@+id/image_view"
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:contentDescription="@null"
-                    android:scaleType="fitCenter"
                     android:visibility="gone" />
 
                 <androidx.media3.ui.PlayerView
@@ -53,6 +53,19 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:visibility="gone" />
+
+                <!-- Fullscreen Button Overlay -->
+                <ImageButton
+                    android:id="@+id/btn_fullscreen"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="bottom|end"
+                    android:layout_margin="12dp"
+                    android:background="?attr/selectableItemBackgroundBorderless"
+                    android:contentDescription="@string/fullscreen"
+                    android:scaleType="centerInside"
+                    android:src="@drawable/ic_fullscreen"
+                    android:tint="@android:color/white" />
             </FrameLayout>
 
             <!-- Neon divider -->
@@ -99,38 +112,6 @@
                         android:textColor="@color/text_primary" />
                 </com.google.android.material.textfield.TextInputLayout>
 
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/TextInput.Neon"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:hint="Tags (comma-separated)">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/tags_input"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:maxLines="1"
-                        android:textColor="@color/text_primary" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <com.google.android.material.textfield.TextInputLayout
-                    style="@style/TextInput.Neon"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="10dp"
-                    android:hint="Created (epoch ms)">
-
-                    <com.google.android.material.textfield.TextInputEditText
-                        android:id="@+id/created_input"
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:inputType="numberSigned"
-                        android:maxLines="1"
-                        android:textColor="@color/text_primary" />
-                </com.google.android.material.textfield.TextInputLayout>
-
-                <!-- Action buttons -->
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_save_meta"
                     style="@style/Btn.Neon.Filled"
@@ -138,26 +119,6 @@
                     android:layout_height="52dp"
                     android:layout_marginTop="16dp"
                     android:text="Save metadata" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_edit_image"
-                    style="@style/Btn.Neon"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:layout_marginTop="8dp"
-                    android:text="Open image editor"
-                    android:visibility="gone" />
-
-                <com.google.android.material.button.MaterialButton
-                    android:id="@+id/btn_edit_video"
-                    style="@style/Btn.Neon"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:layout_marginTop="8dp"
-                    android:textColor="@color/neon_cyan"
-                    app:strokeColor="@color/neon_cyan"
-                    android:text="Trim / video tools"
-                    android:visibility="gone" />
 
                 <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_add_album"

@@ -15,9 +15,6 @@ data class MediaEntity(
     val mimeType: String,
     val isVideo: Boolean,
     val description: String = "",
-    /** Comma-separated tags for simple local search/filtering. */
-    val tags: String = "",
-    val createdAtEpochMs: Long,
     val modifiedAtEpochMs: Long = System.currentTimeMillis(),
     val sizeBytes: Long = 0,
     val width: Int = 0,

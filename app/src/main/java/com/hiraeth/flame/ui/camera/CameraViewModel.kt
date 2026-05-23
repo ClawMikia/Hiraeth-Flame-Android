@@ -1,5 +1,6 @@
 package com.hiraeth.flame.ui.camera
 
+import android.view.Surface
 import androidx.camera.core.CameraSelector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -9,6 +10,10 @@ import com.hiraeth.flame.data.repository.MediaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.launch
+
+enum class CaptureOrientation {
+    PORTRAIT, LANDSCAPE
+}
 
 class CameraViewModel(
     private val repository: MediaRepository,
@@ -21,6 +26,9 @@ class CameraViewModel(
     private val _recording = MutableStateFlow(false)
     val recording: StateFlow<Boolean> = _recording
 
+    private val _captureOrientation = MutableStateFlow(CaptureOrientation.PORTRAIT)
+    val captureOrientation: StateFlow<CaptureOrientation> = _captureOrientation
+
     private val _lastMessage = MutableStateFlow<String?>(null)
     val lastMessage: StateFlow<String?> = _lastMessage
 
@@ -30,6 +38,15 @@ class CameraViewModel(
                 CameraSelector.LENS_FACING_FRONT
             } else {
                 CameraSelector.LENS_FACING_BACK
+            }
+    }
+
+    fun toggleOrientation() {
+        _captureOrientation.value =
+            if (_captureOrientation.value == CaptureOrientation.PORTRAIT) {
+                CaptureOrientation.LANDSCAPE
+            } else {
+                CaptureOrientation.PORTRAIT
             }
     }
 
@@ -59,6 +76,13 @@ class CameraViewModel(
 
     fun createPhotoOutputFile() = storage.createCameraPhotoFile()
     fun createVideoOutputFile() = storage.createCameraVideoFile()
+
+    fun getTargetRotation(): Int {
+        return when (captureOrientation.value) {
+            CaptureOrientation.PORTRAIT -> Surface.ROTATION_0
+            CaptureOrientation.LANDSCAPE -> Surface.ROTATION_90
+        }
+    }
 
     companion object {
         fun factory(repository: MediaRepository, storage: MediaStorage): ViewModelProvider.Factory =

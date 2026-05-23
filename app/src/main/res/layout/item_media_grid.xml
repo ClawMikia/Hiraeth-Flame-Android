@@ -26,14 +26,6 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintTop_toTopOf="parent" />
 
-        <!-- Gradient overlay at bottom of thumbnail -->
-        <View
-            android:layout_width="0dp"
-            android:layout_height="60dp"
-            android:background="@drawable/bg_scrim_bottom"
-            app:layout_constraintBottom_toBottomOf="@id/thumbnail"
-            app:layout_constraintEnd_toEndOf="parent"
-            app:layout_constraintStart_toStartOf="parent" />
 
         <!-- Type badge (Video / Photo) -->
         <TextView

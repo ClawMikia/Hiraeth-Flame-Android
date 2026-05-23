@@ -10,7 +10,7 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface MediaDao {
-    @Query("SELECT * FROM media ORDER BY createdAtEpochMs DESC")
+    @Query("SELECT * FROM media ORDER BY modifiedAtEpochMs DESC")
     fun observeAll(): Flow<List<MediaEntity>>
 
     @Query("SELECT * FROM media WHERE id = :id")

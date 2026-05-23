@@ -13,6 +13,7 @@ import com.hiraeth.flame.di.AppContainer
 
 class AlbumsAdapter(
     private val container: AppContainer,
+    private val onAlbumClick: (Long) -> Unit,
     private val onMediaClick: (Long) -> Unit,
 ) : ListAdapter<AlbumWithMedia, AlbumsAdapter.VH>(DIFF) {
 
@@ -34,9 +35,11 @@ class AlbumsAdapter(
         val row = getItem(position)
         val binding = holder.binding
         binding.albumName.text = row.album.name
-        binding.albumCategory.text = row.album.category
+        binding.albumDescription.text = row.album.description
         val count = row.media.size
         binding.albumCount.text = if (count == 1) "1 item" else "$count items"
+
+        binding.root.setOnClickListener { onAlbumClick(row.album.id) }
 
         binding.thumbRow.removeAllViews()
         val d = holder.itemView.resources.displayMetrics.density

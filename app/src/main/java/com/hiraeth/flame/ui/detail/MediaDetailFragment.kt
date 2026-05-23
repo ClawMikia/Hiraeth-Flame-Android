@@ -54,22 +54,6 @@ class MediaDetailFragment : Fragment() {
             viewModel.saveMetadata(
                 binding.titleInput.text?.toString().orEmpty(),
                 binding.descInput.text?.toString().orEmpty(),
-                binding.tagsInput.text?.toString().orEmpty(),
-                binding.createdInput.text?.toString()?.toLongOrNull() ?: System.currentTimeMillis(),
-            )
-        }
-
-        binding.btnEditImage.setOnClickListener {
-            findNavController().navigate(
-                R.id.action_detail_to_imageEditor,
-                bundleOf("mediaId" to mediaId),
-            )
-        }
-
-        binding.btnEditVideo.setOnClickListener {
-            findNavController().navigate(
-                R.id.action_detail_to_videoEditor,
-                bundleOf("mediaId" to mediaId),
             )
         }
 
@@ -77,6 +61,15 @@ class MediaDetailFragment : Fragment() {
 
         binding.btnDelete.setOnClickListener {
             viewModel.delete { findNavController().popBackStack() }
+        }
+
+        // Fullscreen button click listener
+        binding.btnFullscreen.setOnClickListener {
+            viewModel.media.value?.let { media ->
+                val file = container.mediaStorage.resolveRelative(media.relativePath)
+                val fullscreenDialog = FullscreenMediaDialogFragment.newInstance(file, media.isVideo)
+                fullscreenDialog.show(childFragmentManager, "fullscreen_media")
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -89,8 +82,6 @@ class MediaDetailFragment : Fragment() {
                         if (m == null) return@collect
                         binding.titleInput.setText(m.displayName)
                         binding.descInput.setText(m.description)
-                        binding.tagsInput.setText(m.tags)
-                        binding.createdInput.setText(m.createdAtEpochMs.toString())
 
                         releasePlayer()
                         val file = container.mediaStorage.resolveRelative(m.relativePath)
@@ -102,15 +93,11 @@ class MediaDetailFragment : Fragment() {
                                 exo.prepare()
                                 binding.playerView.player = exo
                             }
-                            binding.btnEditImage.visibility = View.GONE
-                            binding.btnEditVideo.visibility = View.VISIBLE
                         } else {
                             binding.playerView.player = null
                             binding.playerView.visibility = View.GONE
                             binding.imageView.visibility = View.VISIBLE
                             binding.imageView.load(file) { crossfade(true) }
-                            binding.btnEditImage.visibility = View.VISIBLE
-                            binding.btnEditVideo.visibility = View.GONE
                         }
                     }
                 }
@@ -120,7 +107,7 @@ class MediaDetailFragment : Fragment() {
 
     private fun showAlbumPicker() {
         val albums = cachedAlbums
-        val names = albums.map { "${it.album.name} (${it.album.category})" }.toTypedArray()
+        val names = albums.map { "${it.album.name} (${it.album.description})" }.toTypedArray()
         if (names.isEmpty()) {
             MaterialAlertDialogBuilder(requireContext())
                 .setMessage("Create an album first from the Albums tab.")

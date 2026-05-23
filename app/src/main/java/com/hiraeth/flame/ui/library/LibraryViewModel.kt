@@ -80,21 +80,8 @@ class LibraryViewModel(
                 }
             }
             .filter { entity ->
-                if (q.isBlank()) true
-                else {
-                    val needle = q.trim().lowercase()
-                    entity.displayName.lowercase().contains(needle) ||
-                        entity.description.lowercase().contains(needle) ||
-                        entity.tags.lowercase().contains(needle)
-                }
-            }
-            .filter { entity ->
-                if (tag.isBlank()) true
-                else entity.tags.lowercase().split(',').any { it.trim().contains(tag.trim().lowercase()) }
-            }
-            .filter { entity ->
-                val fromOk = from?.let { entity.createdAtEpochMs >= it } ?: true
-                val toOk = to?.let { entity.createdAtEpochMs <= it } ?: true
+                val fromOk = from?.let { entity.modifiedAtEpochMs >= it } ?: true
+                val toOk = to?.let { entity.modifiedAtEpochMs <= it } ?: true
                 fromOk && toOk
             }
             .sortedWith(comparatorFor(s))
@@ -145,8 +132,8 @@ class LibraryViewModel(
 
     private fun comparatorFor(sort: LibrarySort): Comparator<MediaEntity> =
         when (sort) {
-            LibrarySort.DateNewest -> compareByDescending { it.createdAtEpochMs }
-            LibrarySort.DateOldest -> compareBy { it.createdAtEpochMs }
+            LibrarySort.DateNewest -> compareByDescending { it.modifiedAtEpochMs }
+            LibrarySort.DateOldest -> compareBy { it.modifiedAtEpochMs }
             LibrarySort.NameAZ -> compareBy { it.displayName.lowercase() }
             LibrarySort.NameZA -> compareByDescending { it.displayName.lowercase() }
             LibrarySort.SizeLargest -> compareByDescending { it.sizeBytes }

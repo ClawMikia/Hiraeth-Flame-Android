@@ -27,17 +27,13 @@ class MediaDetailViewModel(
     fun saveMetadata(
         title: String,
         description: String,
-        tags: String,
-        createdAtEpochMs: Long,
     ) {
         viewModelScope.launch {
             val current = repository.getById(mediaId) ?: return@launch
             repository.update(
                 current.copy(
-                    displayName = title.trim().ifBlank { current.displayName },
+                    displayName = title.trim(),
                     description = description.trim(),
-                    tags = tags.trim(),
-                    createdAtEpochMs = createdAtEpochMs,
                 ),
             )
         }

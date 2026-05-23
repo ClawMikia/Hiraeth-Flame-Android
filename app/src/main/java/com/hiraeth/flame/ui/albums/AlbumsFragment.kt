@@ -40,10 +40,17 @@ class AlbumsFragment : Fragment() {
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        adapter = AlbumsAdapter(container) { id ->
-            val b = Bundle().apply { putLong("mediaId", id) }
-            findNavController().navigate(R.id.action_albums_to_detail, b)
-        }
+        adapter = AlbumsAdapter(
+            container = container,
+            onAlbumClick = { id ->
+                val b = Bundle().apply { putLong("albumId", id) }
+                findNavController().navigate(R.id.action_albums_to_albumDetail, b)
+            },
+            onMediaClick = { id ->
+                val b = Bundle().apply { putLong("mediaId", id) }
+                findNavController().navigate(R.id.action_albums_to_detail, b)
+            }
+        )
         binding.recycler.layoutManager = LinearLayoutManager(requireContext())
         binding.recycler.adapter = adapter
 
@@ -68,21 +75,26 @@ class AlbumsFragment : Fragment() {
         val inputName = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
             R.id.album_name_input,
         )
-        val inputCat = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
-            R.id.category_input,
+        val inputDesc = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(
+            R.id.description_input,
         )
+        val btnCancel = dialogView.findViewById<View>(R.id.btn_cancel)
+        val btnCreate = dialogView.findViewById<View>(R.id.btn_create)
 
-        MaterialAlertDialogBuilder(requireContext())
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
             .setView(dialogView)
-            .setPositiveButton("Create") { _, _ ->
-                val name = inputName.text?.toString().orEmpty().trim()
-                val cat = inputCat.text?.toString().orEmpty().trim()
-                if (name.isNotBlank()) {
-                    viewModel.createAlbum(name, cat.ifBlank { "General" })
-                }
+            .create()
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnCreate.setOnClickListener {
+            val name = inputName.text?.toString().orEmpty().trim()
+            val desc = inputDesc.text?.toString().orEmpty().trim()
+            if (name.isNotBlank()) {
+                viewModel.createAlbum(name, desc)
+                dialog.dismiss()
             }
-            .setNegativeButton(android.R.string.cancel, null)
-            .show()
+        }
+        dialog.show()
     }
 
     override fun onDestroyView() {
