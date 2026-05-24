@@ -24,12 +24,4 @@ class AlbumRepository(
     suspend fun addToAlbum(albumId: Long, mediaId: Long) {
         albumDao.linkMedia(AlbumMediaCrossRef(albumId = albumId, mediaId = mediaId))
     }
-
-    suspend fun removeFromAlbum(albumId: Long, mediaId: Long) {
-        albumDao.unlinkMedia(albumId, mediaId)
-    }
-
-    suspend fun deleteAlbum(albumId: Long) {
-        albumDao.deleteAlbum(albumId)
-    }
 }

@@ -3,7 +3,6 @@ package com.hiraeth.flame.ui.albums
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.hiraeth.flame.data.db.AlbumEntity
 import com.hiraeth.flame.data.db.AlbumWithMedia
 import com.hiraeth.flame.data.db.MediaEntity
 import com.hiraeth.flame.data.repository.AlbumRepository

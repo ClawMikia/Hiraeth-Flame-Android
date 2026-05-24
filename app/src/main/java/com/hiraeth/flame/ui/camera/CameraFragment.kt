@@ -4,7 +4,6 @@ import android.Manifest
 import android.content.pm.PackageManager
 import android.os.Bundle
 import android.view.LayoutInflater
-import android.view.Surface
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
@@ -42,7 +41,7 @@ class CameraFragment : Fragment() {
     private val container get() = (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
 
     private val viewModel: CameraViewModel by viewModels {
-        CameraViewModel.factory(container.mediaRepository, container.mediaStorage)
+        CameraViewModel.factory(container.mediaStorage)
     }
 
     private var imageCapture: ImageCapture? = null
@@ -90,7 +89,7 @@ class CameraFragment : Fragment() {
                     }
                 }
                 launch {
-                    viewModel.lastMessage.collect { binding.cameraMessage.setText(it.orEmpty()) }
+                    viewModel.lastMessage.collect { binding.cameraMessage.text = it.orEmpty() }
                 }
             }
         }
@@ -153,7 +152,7 @@ class CameraFragment : Fragment() {
                 }
                 val file = viewModel.createVideoOutputFile()
                 val opts = FileOutputOptions.Builder(file).build()
-                viewModel.setRecording(true)
+                viewModel.setRecording(value = true)
                 activeRecording = vc.output
                     .prepareRecording(requireContext(), opts)
                     .withAudioEnabled()
@@ -207,7 +206,7 @@ class CameraFragment : Fragment() {
     }
 
     private fun updateOrientationButtonLabel() {
-        val orientation = viewModel.captureOrientation.value
+        // No UI element currently shows the orientation label
     }
 
     private fun bindCameraUseCases() {

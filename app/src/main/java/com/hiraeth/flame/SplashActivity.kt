@@ -8,9 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.view.View
 import android.view.animation.AccelerateDecelerateInterpolator
-import android.view.animation.OvershootInterpolator
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 
 class SplashActivity : AppCompatActivity() {
 
@@ -54,6 +52,7 @@ class SplashActivity : AppCompatActivity() {
 
         Handler(Looper.getMainLooper()).postDelayed({
             startActivity(Intent(this, MainActivity::class.java))
+            @Suppress("DEPRECATION")
             overridePendingTransition(android.R.anim.fade_in, android.R.anim.fade_out)
             finish()
         }, 2600)

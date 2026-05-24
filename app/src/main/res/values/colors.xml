@@ -11,30 +11,12 @@
     <color name="neon_green">#00FF88</color>
     <color name="neon_amber">#FFAA00</color>
 
-    <!-- Legacy aliases kept for compat -->
-    <color name="purple_accent">@color/neon_violet</color>
-    <color name="neon_purple_bright">@color/neon_violet_bright</color>
-    <color name="neon_purple_dark">@color/neon_violet_dim</color>
-    <color name="neon_purple_glow">@color/neon_violet_bright</color>
-    <color name="neon_magenta_bright">#FF4DC4</color>
-    <color name="neon_orange">@color/neon_amber</color>
-    <color name="neon_cyan_bright">@color/neon_cyan</color>
-
     <!-- Dark Background Scale -->
     <color name="bg_abyss">#020206</color>
     <color name="bg_deep">#07070F</color>
     <color name="bg_surface">#0E0E1C</color>
     <color name="bg_card">#131325</color>
     <color name="bg_elevated">#1A1A30</color>
-
-    <!-- Legacy bg aliases -->
-    <color name="black_primary">@color/bg_abyss</color>
-    <color name="black_surface">@color/bg_surface</color>
-    <color name="cyberpunk_black">@color/bg_abyss</color>
-    <color name="cyberpunk_dark">@color/bg_deep</color>
-    <color name="cyberpunk_surface">@color/bg_surface</color>
-    <color name="cyberpunk_card">@color/bg_card</color>
-    <color name="cyberpunk_elevated">@color/bg_elevated</color>
 
     <!-- Text -->
     <color name="text_primary">#F0F0FF</color>
@@ -50,7 +32,6 @@
     <color name="border_neon_magenta">@color/neon_magenta</color>
     <color name="border_subtle">#1E1E38</color>
     <color name="divider_dark">#1A1A30</color>
-    <color name="divider_cyberpunk">@color/border_subtle</color>
     <color name="divider_glow">#2A2A50</color>
 
     <!-- Scrim / overlay -->

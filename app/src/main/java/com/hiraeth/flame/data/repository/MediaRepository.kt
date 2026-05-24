@@ -44,7 +44,7 @@ class MediaRepository(
                 width = dims.first,
                 height = dims.second,
                 durationMs = dims.third,
-                description = description.trim()
+                description = description.trim(),
             )
             dao.insert(entity)
         }
@@ -69,7 +69,7 @@ class MediaRepository(
                 width = dims.first,
                 height = dims.second,
                 durationMs = dims.third,
-                description = description.trim() // ✅ Saves metadata cleanly to SQLite on device capture
+                description = description.trim(), // ✅ Saves metadata cleanly to SQLite on device capture
             )
             dao.insert(entity)
         }

@@ -4,19 +4,15 @@ import android.view.Surface
 import androidx.camera.core.CameraSelector
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import androidx.lifecycle.viewModelScope
 import com.hiraeth.flame.data.local.MediaStorage
-import com.hiraeth.flame.data.repository.MediaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.launch
 
 enum class CaptureOrientation {
     PORTRAIT, LANDSCAPE
 }
 
 class CameraViewModel(
-    private val repository: MediaRepository,
     private val storage: MediaStorage,
 ) : ViewModel() {
 
@@ -41,39 +37,12 @@ class CameraViewModel(
             }
     }
 
-    fun toggleOrientation() {
-        _captureOrientation.value =
-            if (_captureOrientation.value == CaptureOrientation.PORTRAIT) {
-                CaptureOrientation.LANDSCAPE
-            } else {
-                CaptureOrientation.PORTRAIT
-            }
-    }
-
     fun setRecording(value: Boolean) {
         _recording.value = value
     }
 
     fun clearMessage() {
         _lastMessage.value = null
-    }
-
-    // ✅ FIXED: Updated function signatures to take title and description inputs from the UI dialog
-    fun onPhotoSaved(file: java.io.File, title: String, description: String) {
-        viewModelScope.launch {
-            runCatching { repository.registerCapturedPhoto(file, title, description) }
-                .onSuccess { _lastMessage.value = "Photo saved to library" }
-                .onFailure { _lastMessage.value = it.message ?: "Save failed" }
-        }
-    }
-
-    // ✅ FIXED: Updated function signatures to take title and description inputs from the UI dialog
-    fun onVideoSaved(file: java.io.File, title: String, description: String) {
-        viewModelScope.launch {
-            runCatching { repository.registerCapturedVideo(file, title, description) }
-                .onSuccess { _lastMessage.value = "Video saved to library" }
-                .onFailure { _lastMessage.value = it.message ?: "Save failed" }
-        }
     }
 
     fun createPhotoOutputFile() = storage.createCameraPhotoFile()
@@ -87,12 +56,12 @@ class CameraViewModel(
     }
 
     companion object {
-        fun factory(repository: MediaRepository, storage: MediaStorage): ViewModelProvider.Factory =
+        fun factory(storage: MediaStorage): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(CameraViewModel::class.java))
-                    return CameraViewModel(repository, storage) as T
+                    return CameraViewModel(storage) as T
                 }
             }
     }

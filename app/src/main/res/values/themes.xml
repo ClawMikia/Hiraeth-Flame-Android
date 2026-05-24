@@ -97,11 +97,6 @@
         <item name="rippleColor">#33FF007A</item>
     </style>
 
-    <!-- Keep old alias alive -->
-    <style name="CyberpunkButton" parent="Btn.Neon" />
-    <style name="CyberpunkTonalButton" parent="Btn.Neon.Tonal" />
-
-
     <!-- ══════════════════════════════════════════════════
          CARDS
     ══════════════════════════════════════════════════ -->
@@ -123,10 +118,6 @@
         <item name="strokeWidth">1dp</item>
     </style>
 
-    <!-- Keep old alias -->
-    <style name="CyberpunkCard" parent="Card.Neon" />
-
-
     <!-- ══════════════════════════════════════════════════
          BOTTOM NAVIGATION
     ══════════════════════════════════════════════════ -->
@@ -141,11 +132,6 @@
         <item name="colorPrimary">@color/neon_violet</item>
     </style>
 
-    <!-- Keep old alias -->
-    <style name="CyberpunkBottomNavigation" parent="BottomNav.Neon" />
-    <style name="ThemeOverlay.Cyberpunk.BottomNavigation" parent="ThemeOverlay.BottomNav.Neon" />
-
-
     <!-- ══════════════════════════════════════════════════
          TOOLBAR
     ══════════════════════════════════════════════════ -->
@@ -155,9 +141,6 @@
         <item name="android:background">@color/bg_abyss</item>
         <item name="android:elevation">0dp</item>
     </style>
-
-    <style name="CyberpunkToolbar" parent="Toolbar.Neon" />
-
 
     <!-- ══════════════════════════════════════════════════
          TEXT INPUT
@@ -177,15 +160,6 @@
         <item name="cursorColor">@color/neon_violet</item>
     </style>
 
-    <style name="CyberpunkTextInput" parent="TextInput.Neon" />
-
-    <style name="CyberpunkTextInputEditText" parent="Widget.Material3.TextInputEditText.OutlinedBox">
-        <item name="android:textColor">@color/text_primary</item>
-        <item name="android:background">@null</item>
-        <item name="android:padding">12dp</item>
-    </style>
-
-
     <!-- ══════════════════════════════════════════════════
          FAB
     ══════════════════════════════════════════════════ -->
@@ -194,8 +168,6 @@
         <item name="tint">@color/neon_violet</item>
         <item name="android:elevation">0dp</item>
     </style>
-
-    <style name="CyberpunkFAB" parent="FAB.Neon" />
 
     <!-- Toolbar title appearance -->
     <style name="TextAppearance.Toolbar.Title" parent="TextAppearance.Material3.TitleLarge">

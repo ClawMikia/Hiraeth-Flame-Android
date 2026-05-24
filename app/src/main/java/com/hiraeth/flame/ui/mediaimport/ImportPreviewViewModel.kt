@@ -13,7 +13,7 @@ class ImportPreviewViewModel(
     private val repository: MediaRepository,
 ) : ViewModel() {
 
-    private val _busy = MutableStateFlow(false)
+    private val _busy = MutableStateFlow(value = false)
     val busy: StateFlow<Boolean> = _busy
 
     private val _error = MutableStateFlow<String?>(null)
@@ -24,7 +24,7 @@ class ImportPreviewViewModel(
         displayName: String,
         description: String,
         isVideo: Boolean,
-        onImported: (Long) -> Unit
+        onImported: (Long) -> Unit,
     ) {
         viewModelScope.launch {
             _busy.value = true

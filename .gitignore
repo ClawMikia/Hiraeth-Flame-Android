@@ -1,13 +1,44 @@
+# Built artifacts
 *.iml
-.gradle
+.gradle/
 /local.properties
-/.idea
+/.idea/
 .DS_Store
-/build
-**/build
-/captures
-.externalNativeBuild
-.cxx
+/build/
+**/build/
+/captures/
+.externalNativeBuild/
+.cxx/
 *.apk
 *.ap_
 *.aab
+
+# Android Studio / IntelliJ
+*.ipr
+*.iws
+out/
+.idea/caches/
+.idea/libraries/
+.idea/modules.xml
+.idea/workspace.xml
+.idea/navEditor.xml
+.idea/assetWizardSettings.xml
+
+# Log Files
+*.log
+
+# NDK
+# (Already covered above)
+
+# keystore
+*.jks
+*.keystore
+
+# Google Services
+google-services.json
+
+# Lint
+lint/
+
+# AS Profile
+*.hprof

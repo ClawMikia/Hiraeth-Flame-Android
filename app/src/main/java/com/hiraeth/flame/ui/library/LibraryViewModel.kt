@@ -11,11 +11,9 @@ import com.hiraeth.flame.domain.MediaTypeFilter
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import java.util.Calendar
 
 /** Holds the first four inputs for [LibraryViewModel.items] (nested [combine] avoids 7-way overload issues on K2). */
 private data class LibraryMainInputs(
@@ -36,7 +34,6 @@ class LibraryViewModel(
 ) : ViewModel() {
 
     private val _query = MutableStateFlow("")
-    val queryState: StateFlow<String> = _query.asStateFlow()
     private val typeFilter = MutableStateFlow(MediaTypeFilter.All)
     private val sort = MutableStateFlow(LibrarySort.DateNewest)
     private val viewMode = MutableStateFlow(LibraryViewMode.Grid)
@@ -73,6 +70,12 @@ class LibraryViewModel(
         val to = dates.dateTo
         list.asSequence()
             .filter { entity ->
+                if (q.isBlank()) true else entity.displayName.contains(q, ignoreCase = true)
+            }
+            .filter { entity ->
+                if (tag.isBlank()) true else entity.description.contains(tag, ignoreCase = true)
+            }
+            .filter { entity ->
                 when (tf) {
                     MediaTypeFilter.All -> true
                     MediaTypeFilter.ImagesOnly -> !entity.isVideo
@@ -106,24 +109,6 @@ class LibraryViewModel(
 
     fun setTagFilter(value: String) {
         tagFilter.value = value
-    }
-
-    /** Sets filter to start/end of a calendar day in local timezone. */
-    fun setDateRangeDay(year: Int, monthZeroBased: Int, day: Int) {
-        val cal = Calendar.getInstance()
-        cal.set(year, monthZeroBased, day, 0, 0, 0)
-        cal.set(Calendar.MILLISECOND, 0)
-        val start = cal.timeInMillis
-        cal.set(year, monthZeroBased, day, 23, 59, 59)
-        cal.set(Calendar.MILLISECOND, 999)
-        val end = cal.timeInMillis
-        dateFromEpoch.value = start
-        dateToEpoch.value = end
-    }
-
-    fun clearDateFilter() {
-        dateFromEpoch.value = null
-        dateToEpoch.value = null
     }
 
     fun delete(entity: MediaEntity) {

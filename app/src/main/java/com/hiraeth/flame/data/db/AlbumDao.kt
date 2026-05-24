@@ -21,10 +21,4 @@ interface AlbumDao {
 
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun linkMedia(crossRef: AlbumMediaCrossRef)
-
-    @Query("DELETE FROM album_media WHERE albumId = :albumId AND mediaId = :mediaId")
-    suspend fun unlinkMedia(albumId: Long, mediaId: Long)
-
-    @Query("DELETE FROM albums WHERE id = :albumId")
-    suspend fun deleteAlbum(albumId: Long)
 }

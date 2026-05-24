@@ -40,16 +40,17 @@ Hiraeth Flame is a comprehensive media management app built with modern Android 
 ## 🛠️ Technical Stack
 
 ### Core Technologies
-- **Kotlin**: Primary programming language
+- **Kotlin**: Primary programming language (Kotlin 2.0)
 - **Android SDK**: Targeting API 35, minimum API 24
 - **Material Design 3**: UI/UX framework
 - **ViewBinding**: Type-safe view binding
+- **KSP**: Kotlin Symbol Processing for Room database
 
 ### Architecture
 - **MVVM**: Model-View-ViewModel architecture pattern
 - **Navigation Component**: Single-activity architecture with fragment navigation
-- **Room Database**: Local data persistence
-- **Dependency Injection**: Manual DI setup
+- **Room Database**: Local data persistence with high-performance DAO
+- **Dependency Injection**: Manual DI setup via AppContainer
 
 ### Key Libraries
 - **CameraX**: Camera functionality and preview
