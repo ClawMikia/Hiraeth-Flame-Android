@@ -23,6 +23,7 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <androidx.core.widget.NestedScrollView
+        android:id="@+id/nested_scroll_view"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:fillViewport="true"
@@ -40,19 +41,33 @@
                 android:layout_height="@dimen/media_detail_preview_height"
                 android:background="@color/bg_abyss">
 
-                <!-- Photo View with zoom support -->
-                <com.github.chrisbanes.photoview.PhotoView
-                    android:id="@+id/image_view"
+                <androidx.viewpager2.widget.ViewPager2
+                    android:id="@+id/view_pager"
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="@null"
-                    android:visibility="gone" />
+                    android:layout_height="match_parent" />
 
-                <androidx.media3.ui.PlayerView
-                    android:id="@+id/player_view"
-                    android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:visibility="gone" />
+                <!-- Navigation Buttons -->
+                <ImageButton
+                    android:id="@+id/btn_prev"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center_vertical|start"
+                    android:layout_marginStart="8dp"
+                    android:background="@drawable/bg_nav_circle"
+                    android:contentDescription="@string/nav_previous"
+                    android:src="@drawable/ic_chevron_left"
+                    android:tint="@color/neon_violet" />
+
+                <ImageButton
+                    android:id="@+id/btn_next"
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:layout_gravity="center_vertical|end"
+                    android:layout_marginEnd="8dp"
+                    android:background="@drawable/bg_nav_circle"
+                    android:contentDescription="@string/nav_next"
+                    android:src="@drawable/ic_chevron_right"
+                    android:tint="@color/neon_violet" />
 
                 <!-- Fullscreen Button Overlay -->
                 <ImageButton

@@ -2,6 +2,13 @@
 
 A modern Android multimedia application for capturing, editing, and managing photos and videos with a sleek dark theme interface.
 
+> "A dragon breaths fire with no smoke."
+> — Christopher Lee Cajes
+
+## 🐉 The Purpose of Silent Success
+
+In a world filled with noise and constant self-promotion, **Hiraeth Flame** embodies the philosophy of silent success. Just as a dragon breathes fire without the obscuring cloud of smoke, true excellence speaks through its results rather than its clamor. We believe in building with precision, performing with power, and succeeding with humility. The fire of innovation burns brightest when it is pure, direct, and undistracted by the superficial.
+
 ## 📱 Overview
 
 Hiraeth Flame is a comprehensive media management app built with modern Android development practices. It features camera capture, media editing, library management, and album organization capabilities with a beautiful Material Design 3 dark theme.
@@ -145,7 +152,6 @@ This project is proprietary software. All rights reserved.
 ## 👤 Author
 
 **Christopher Lee Cajes**
-- *Quote*: "A dragon breathes fire with no smoke."
 
 ---
 

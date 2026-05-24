@@ -122,7 +122,10 @@ class CameraFragment : Fragment() {
                                         // ✅ FIXED: Direct navigation to the Detail Fragment destination ID
                                         findNavController().navigate(
                                             R.id.mediaDetailFragment,
-                                            androidx.core.os.bundleOf("mediaId" to newMediaId)
+                                            androidx.core.os.bundleOf(
+                                                "mediaId" to newMediaId,
+                                                "albumId" to -1L
+                                            )
                                         )
                                     } catch (e: Exception) {
                                         Toast.makeText(requireContext(), "Save failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()
@@ -177,7 +180,10 @@ class CameraFragment : Fragment() {
                                                     // ✅ FIXED: Direct navigation to the Detail Fragment destination ID
                                                     findNavController().navigate(
                                                         R.id.mediaDetailFragment,
-                                                        androidx.core.os.bundleOf("mediaId" to newMediaId)
+                                                        androidx.core.os.bundleOf(
+                                                            "mediaId" to newMediaId,
+                                                            "albumId" to -1L
+                                                        )
                                                     )
                                                 } catch (e: Exception) {
                                                     Toast.makeText(requireContext(), "Save failed: ${e.localizedMessage}", Toast.LENGTH_LONG).show()

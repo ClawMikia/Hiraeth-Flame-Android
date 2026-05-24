@@ -13,29 +13,30 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
-import coil.load
+import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hiraeth.flame.R
 import com.hiraeth.flame.data.db.AlbumWithMedia
 import com.hiraeth.flame.databinding.FragmentMediaDetailBinding
+import com.hiraeth.flame.di.AppContainer
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
 
 class MediaDetailFragment : Fragment() {
 
     private var _binding: FragmentMediaDetailBinding? = null
     private val binding get() = _binding!!
 
-    private val container get() = (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
+    private val container: AppContainer get() = (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
 
     private val mediaId: Long get() = requireArguments().getLong("mediaId")
+    private val albumId: Long get() = requireArguments().getLong("albumId", -1L)
 
     private val viewModel: MediaDetailViewModel by viewModels {
-        MediaDetailViewModel.factory(container.mediaRepository, container.albumRepository, mediaId)
+        MediaDetailViewModel.factory(container.mediaRepository, container.albumRepository, mediaId, albumId)
     }
 
-    private var player: ExoPlayer? = null
+    private lateinit var pagerAdapter: MediaPagerAdapter
     private var cachedAlbums: List<AlbumWithMedia> = emptyList()
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
@@ -49,6 +50,26 @@ class MediaDetailFragment : Fragment() {
             setOf(R.id.libraryFragment, R.id.cameraFragment, R.id.albumsFragment),
         )
         binding.toolbar.setupWithNavController(navController, appBarConfig)
+
+        // Setup ViewPager2
+        pagerAdapter = MediaPagerAdapter(container)
+        binding.viewPager.adapter = pagerAdapter
+        
+        // Sync Pager -> ViewModel
+        binding.viewPager.registerOnPageChangeCallback(
+            object : ViewPager2.OnPageChangeCallback() {
+                override fun onPageSelected(position: Int) {
+                    val item = pagerAdapter.currentList.getOrNull(position)
+                    if (item != null) {
+                        viewModel.setCurrentId(item.id)
+                        pagerAdapter.playVideo(
+                            position,
+                            binding.viewPager.getChildAt(0) as androidx.recyclerview.widget.RecyclerView,
+                        )
+                    }
+                }
+            },
+        )
 
         binding.btnSaveMeta.setOnClickListener {
             val title = binding.titleInput.text?.toString()?.trim().orEmpty()
@@ -65,12 +86,23 @@ class MediaDetailFragment : Fragment() {
         binding.btnAddAlbum.setOnClickListener { showAlbumPicker() }
 
         binding.btnDelete.setOnClickListener {
-            viewModel.delete { findNavController().popBackStack() }
+            showDeleteConfirmation()
         }
 
-        // Keep layout fallback click listener for photos
+        binding.btnPrev.setOnClickListener { 
+            binding.viewPager.currentItem -= 1
+        }
+        binding.btnNext.setOnClickListener { 
+            binding.viewPager.currentItem += 1
+        }
+
         binding.btnFullscreen.setOnClickListener {
-            openFullscreenDialog(isVideoMode = false)
+            val m = viewModel.media.value
+            if (m != null) {
+                val file = container.mediaStorage.resolveRelative(m.relativePath)
+                FullscreenMediaDialogFragment.newInstance(file, m.isVideo)
+                    .show(parentFragmentManager, "fullscreen_media")
+            }
         }
 
         viewLifecycleOwner.lifecycleScope.launch {
@@ -78,87 +110,78 @@ class MediaDetailFragment : Fragment() {
                 launch {
                     viewModel.albums.collect { cachedAlbums = it }
                 }
+                
+                launch {
+                    viewModel.navigationItems.collect { items ->
+                        pagerAdapter.submitList(items) {
+                            // After list is submitted, find the initial item and jump to it
+                            val initialId = mediaId
+                            val index = items.indexOfFirst { it.id == initialId }
+                            if (index != -1 && (binding.viewPager.currentItem != index)) {
+                                binding.viewPager.setCurrentItem(index, false)
+                            }
+                        }
+                    }
+                }
+
                 launch {
                     viewModel.media.collect { m ->
                         if (m == null) return@collect
-
                         if (!binding.titleInput.hasFocus()) {
                             binding.titleInput.setText(m.displayName)
                         }
                         if (!binding.descInput.hasFocus()) {
                             binding.descInput.setText(m.description)
                         }
+                    }
+                }
 
-                        releasePlayer()
-                        val file = container.mediaStorage.resolveRelative(m.relativePath)
-                        if (m.isVideo) {
-                            binding.imageView.visibility = View.GONE
-                            binding.playerView.visibility = View.VISIBLE
-
-                            // Hide the loose layout button so it does not conflict with PlayerView
-                            binding.btnFullscreen.visibility = View.GONE
-
-                            player = ExoPlayer.Builder(requireContext()).build().also { exo ->
-                                exo.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(file)))
-                                exo.prepare()
-                                exo.playWhenReady = true
-                                binding.playerView.player = exo
-                            }
-
-                            // ✅ THE FIX: Attach explicit click listener callback onto PlayerView's internal controller
-                            binding.playerView.setFullscreenButtonClickListener {
-                                openFullscreenDialog(true)
-                            }
-                        } else {
-                            binding.playerView.player = null
-                            binding.playerView.visibility = View.GONE
-                            binding.imageView.visibility = View.VISIBLE
-
-                            // Restore native layout button overlay for single photos
-                            binding.btnFullscreen.visibility = View.VISIBLE
-                            binding.imageView.load(file) { crossfade(true) }
-                        }
+                launch {
+                    combine(viewModel.navigationIds, viewModel.currentId) { ids, currentId ->
+                        ids to currentId
+                    }.collect { (ids, currentId) ->
+                        val index = ids.indexOf(currentId)
+                        binding.btnPrev.isEnabled = index > 0
+                        binding.btnNext.isEnabled = (index != -1) && (index < ids.size - 1)
+                        
+                        val hasMulti = ids.size > 1
+                        binding.btnPrev.visibility = if (hasMulti) View.VISIBLE else View.GONE
+                        binding.btnNext.visibility = if (hasMulti) View.VISIBLE else View.GONE
                     }
                 }
             }
         }
     }
 
-    private fun openFullscreenDialog(isVideoMode: Boolean) {
-        viewModel.media.value?.let { media ->
-            val file = container.mediaStorage.resolveRelative(media.relativePath)
-            val fullscreenDialog = FullscreenMediaDialogFragment.newInstance(file, isVideoMode)
-            fullscreenDialog.show(childFragmentManager, "fullscreen_media")
-        }
-    }
-
-    private fun showAlbumPicker() {
-        val albums = cachedAlbums
-        val names = albums.map { "${it.album.name} (${it.album.description})" }.toTypedArray()
-        if (names.isEmpty()) {
-            MaterialAlertDialogBuilder(requireContext())
-                .setMessage("Create an album first from the Albums tab.")
-                .setPositiveButton(android.R.string.ok, null)
-                .show()
-            return
-        }
-        MaterialAlertDialogBuilder(requireContext())
-            .setTitle("Add to album")
-            .setItems(names) { _, which ->
-                viewModel.addToAlbum(albums[which].album.id)
+    private fun showDeleteConfirmation() {
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setTitle(R.string.delete_confirmation_title)
+            .setMessage(R.string.delete_confirmation_message)
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
+                viewModel.delete { findNavController().popBackStack() }
             }
             .show()
     }
 
-    private fun releasePlayer() {
-        binding.playerView.player = null
-        player?.release()
-        player = null
+    private fun showAlbumPicker() {
+        val names = cachedAlbums.map { it.album.name }.toTypedArray()
+        if (names.isEmpty()) {
+            Toast.makeText(requireContext(), "No albums created yet", Toast.LENGTH_SHORT).show()
+            return
+        }
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setTitle("Add to Album")
+            .setItems(names) { _, which ->
+                viewModel.addToAlbum(cachedAlbums[which].album.id)
+                Toast.makeText(requireContext(), "Added to ${names[which]}", Toast.LENGTH_SHORT).show()
+            }
+            .show()
     }
 
     override fun onDestroyView() {
         super.onDestroyView()
-        releasePlayer()
+        pagerAdapter.releasePlayer()
         _binding = null
     }
 }

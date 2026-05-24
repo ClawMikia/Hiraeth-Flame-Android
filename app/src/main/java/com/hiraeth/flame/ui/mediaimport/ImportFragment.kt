@@ -88,7 +88,10 @@ class ImportFragment : Fragment() {
                     onImported = { id ->
                         findNavController().navigate(
                             R.id.action_import_to_detail,
-                            bundleOf("mediaId" to id),
+                            bundleOf(
+                                "mediaId" to id,
+                                "albumId" to -1L
+                            ),
                         )
                     }
                 )

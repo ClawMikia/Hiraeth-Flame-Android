@@ -7,4 +7,12 @@
     <string name="fullscreen">Fullscreen</string>
     <string name="splash_credit">\"A dragon breaths fire with no smoke.\"</string>
     <string name="splash_author">- Christopher Lee Cajes</string>
+    <string name="nav_previous">Previous</string>
+    <string name="nav_next">Next</string>
+    <string name="delete_confirmation_title">Delete Media?</string>
+    <string name="delete_confirmation_message">Are you sure you want to permanently delete this item from your library?</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_cloud_backup">Cloud Backup</string>
+    <string name="action_backup">Backup</string>
 </resources>

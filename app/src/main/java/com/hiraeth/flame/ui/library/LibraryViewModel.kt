@@ -23,12 +23,6 @@ private data class LibraryMainInputs(
     val sort: LibrarySort,
 )
 
-private data class LibraryDateTagInputs(
-    val tagFilter: String,
-    val dateFrom: Long?,
-    val dateTo: Long?,
-)
-
 class LibraryViewModel(
     private val repository: MediaRepository,
 ) : ViewModel() {
@@ -38,9 +32,6 @@ class LibraryViewModel(
     private val sort = MutableStateFlow(LibrarySort.DateNewest)
     private val viewMode = MutableStateFlow(LibraryViewMode.Grid)
     private val tagFilter = MutableStateFlow("")
-    /** Inclusive day start (local) or null if disabled. */
-    private val dateFromEpoch = MutableStateFlow<Long?>(null)
-    private val dateToEpoch = MutableStateFlow<Long?>(null)
 
     val viewModeState: StateFlow<LibraryViewMode> = viewMode
 
@@ -53,21 +44,12 @@ class LibraryViewModel(
         ) { list, q, tf, s ->
             LibraryMainInputs(list, q, tf, s)
         },
-        combine(
-            tagFilter,
-            dateFromEpoch,
-            dateToEpoch,
-        ) { tag, from, to ->
-            LibraryDateTagInputs(tag, from, to)
-        },
-    ) { main, dates ->
+        tagFilter
+    ) { main, tag ->
         val list = main.list
         val q = main.query
         val tf = main.typeFilter
         val s = main.sort
-        val tag = dates.tagFilter
-        val from = dates.dateFrom
-        val to = dates.dateTo
         list.asSequence()
             .filter { entity ->
                 if (q.isBlank()) true else entity.displayName.contains(q, ignoreCase = true)
@@ -81,11 +63,6 @@ class LibraryViewModel(
                     MediaTypeFilter.ImagesOnly -> !entity.isVideo
                     MediaTypeFilter.VideosOnly -> entity.isVideo
                 }
-            }
-            .filter { entity ->
-                val fromOk = from?.let { entity.modifiedAtEpochMs >= it } ?: true
-                val toOk = to?.let { entity.modifiedAtEpochMs <= it } ?: true
-                fromOk && toOk
             }
             .sortedWith(comparatorFor(s))
             .toList()

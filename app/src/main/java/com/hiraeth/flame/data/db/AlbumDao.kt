@@ -19,6 +19,10 @@ interface AlbumDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertAlbum(album: AlbumEntity): Long
 
+    @Transaction
+    @Query("SELECT * FROM albums WHERE id = :id")
+    fun observeAlbumWithMedia(id: Long): Flow<AlbumWithMedia?>
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun linkMedia(crossRef: AlbumMediaCrossRef)
 }

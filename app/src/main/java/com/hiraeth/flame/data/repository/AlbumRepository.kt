@@ -11,6 +11,8 @@ class AlbumRepository(
 ) {
     fun observeAlbums(): Flow<List<AlbumWithMedia>> = albumDao.observeAlbumsWithMedia()
 
+    fun observeAlbumWithMedia(id: Long): Flow<AlbumWithMedia?> = albumDao.observeAlbumWithMedia(id)
+
     suspend fun createAlbum(name: String, description: String = ""): Long {
         val album = AlbumEntity(name = name.trim(), description = description.trim())
         return albumDao.insertAlbum(album)

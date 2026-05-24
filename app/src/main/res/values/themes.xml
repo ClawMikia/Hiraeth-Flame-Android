@@ -183,9 +183,18 @@
         <item name="colorPrimary">@color/neon_violet</item>
         <item name="android:textColorPrimary">@color/text_primary</item>
         <item name="android:textColorSecondary">@color/text_secondary</item>
-        <item name="buttonBarPositiveButtonStyle">@style/Btn.Neon.Filled</item>
-        <item name="buttonBarNegativeButtonStyle">@style/Btn.Danger</item>
+        <item name="buttonBarPositiveButtonStyle">@style/Btn.Dialog.Positive</item>
+        <item name="buttonBarNegativeButtonStyle">@style/Btn.Dialog.Negative</item>
         <item name="materialAlertDialogTitleTextStyle">@style/AlertDialog.TitleText</item>
+    </style>
+
+    <style name="Btn.Dialog.Positive" parent="Btn.Neon.Filled">
+        <item name="android:layout_marginStart">16dp</item>
+        <item name="android:minWidth">100dp</item>
+    </style>
+
+    <style name="Btn.Dialog.Negative" parent="Btn.Danger">
+        <item name="android:minWidth">100dp</item>
     </style>
 
     <style name="AlertDialog.TitleText" parent="MaterialAlertDialog.Material3.Title.Text">

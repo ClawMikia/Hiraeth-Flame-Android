@@ -77,6 +77,7 @@ class FullscreenMediaDialogFragment : DialogFragment() {
             player = ExoPlayer.Builder(requireContext()).build().also { exo ->
                 exo.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(mediaFile)))
                 exo.prepare()
+                exo.playWhenReady = true // Auto-play when opening fullscreen
                 binding.fullscreenPlayerView.player = exo
             }
         } else {

@@ -11,4 +11,9 @@
         android:icon="@android:drawable/ic_media_play"
         android:title="Reel studio"
         app:showAsAction="ifRoom" />
+    <item
+        android:id="@+id/action_cloud_backup"
+        android:icon="@android:drawable/stat_sys_upload"
+        android:title="Cloud Backup"
+        app:showAsAction="ifRoom" />
 </menu>

@@ -42,7 +42,10 @@ class AlbumDetailFragment : Fragment() {
         binding.toolbar.setupWithNavController(findNavController())
 
         adapter = MediaLibraryAdapter(container, gridMode = true) { id ->
-            val b = Bundle().apply { putLong("mediaId", id) }
+            val b = Bundle().apply { 
+                putLong("mediaId", id)
+                putLong("albumId", albumId)
+            }
             findNavController().navigate(R.id.action_albumDetail_to_detail, b)
         }
 
