@@ -1,5 +1,6 @@
 package com.hiraeth.flame.data.repository
 
+import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.net.Uri
@@ -10,6 +11,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.withContext
 import java.io.File
+import java.io.FileOutputStream
 
 class MediaRepository(
     private val dao: MediaDao,
@@ -55,6 +57,14 @@ class MediaRepository(
 
     suspend fun registerCapturedVideo(file: File, title: String, description: String): Long =
         insertFileRecord(file, isVideo = true, title, description)
+
+    suspend fun saveBitmapAsMedia(bitmap: Bitmap, title: String, description: String): Long = withContext(Dispatchers.IO) {
+        val file = File(storage.imagesDir, "COMBINED_${System.currentTimeMillis()}.jpg")
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 90, out)
+        }
+        insertFileRecord(file, isVideo = false, title, description)
+    }
 
     private suspend fun insertFileRecord(file: File, isVideo: Boolean, title: String, description: String): Long =
         withContext(Dispatchers.IO) {

@@ -1,13 +1,18 @@
 package com.hiraeth.flame.ui.library
 
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.os.Bundle
 import android.text.Editable
+import android.text.InputType
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ArrayAdapter
+import android.widget.EditText
 import android.widget.Toast
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
@@ -21,22 +26,13 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.LinearLayoutManager
-import com.google.android.gms.auth.api.signin.GoogleSignIn
-import com.google.android.gms.auth.api.signin.GoogleSignInOptions
-import com.google.android.gms.common.api.Scope
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.api.client.extensions.android.http.AndroidHttp
-import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential
-import com.google.api.client.json.gson.GsonFactory
-import com.google.api.services.drive.Drive
-import com.google.api.services.drive.DriveScopes
 import com.hiraeth.flame.R
 import com.hiraeth.flame.databinding.FragmentLibraryBinding
 import com.hiraeth.flame.domain.LibrarySort
 import com.hiraeth.flame.domain.LibraryViewMode
 import com.hiraeth.flame.domain.MediaTypeFilter
 import com.hiraeth.flame.ui.util.AppPermissions
-import com.hiraeth.flame.ui.util.DriveServiceHelper
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
@@ -56,32 +52,26 @@ class LibraryFragment : Fragment() {
 
     private lateinit var adapter: MediaLibraryAdapter
 
-    private val googleSignInLauncher = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
-        val task = GoogleSignIn.getSignedInAccountFromIntent(result.data)
-        try {
-            val account = task.getResult(com.google.android.gms.common.api.ApiException::class.java)
-            if (account != null) {
-                // Check if Drive scope was actually granted
-                if (GoogleSignIn.hasPermissions(account, Scope(DriveScopes.DRIVE_FILE))) {
-                    startCloudBackup(account.email ?: "User")
-                } else {
-                    // Re-request specifically with Drive scope
-                    GoogleSignIn.requestPermissions(
-                        this,
-                        1001, // arbitrary code, but we are using the new API launcher mostly
-                        account,
-                        Scope(DriveScopes.DRIVE_FILE)
-                    )
+    private var targetCombineCount = 0
+
+    private val quickImportLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                Toast.makeText(requireContext(), "Importing ${uris.size} items...", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.IO) {
+                    uris.forEach { uri ->
+                        try {
+                            val type = requireContext().contentResolver.getType(uri).orEmpty()
+                            val isVideo = type.startsWith("video/")
+                            val name = uri.lastPathSegment ?: "Imported Media"
+                            container.mediaRepository.importFromUri(uri, name, "Imported from device", isVideo)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
                 }
+                Toast.makeText(requireContext(), "Import complete!", Toast.LENGTH_SHORT).show()
             }
-        } catch (e: com.google.android.gms.common.api.ApiException) {
-            val message = when (e.statusCode) {
-                com.google.android.gms.common.api.CommonStatusCodes.NETWORK_ERROR -> "Network error. Check connection."
-                com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_CANCELLED -> "Sign-in cancelled."
-                com.google.android.gms.auth.api.signin.GoogleSignInStatusCodes.SIGN_IN_FAILED -> "Sign-in failed. Check developer console setup."
-                else -> "Error code: ${e.statusCode}. Ensure SHA-1 is registered."
-            }
-            Toast.makeText(requireContext(), message, Toast.LENGTH_LONG).show()
         }
     }
 
@@ -155,6 +145,14 @@ class LibraryFragment : Fragment() {
         binding.toolbar.inflateMenu(R.menu.menu_library)
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
+                R.id.action_quick_import -> {
+                    if (hasAllPermissions()) {
+                        quickImportLauncher.launch("*/*")
+                    } else {
+                        (activity as? com.hiraeth.flame.MainActivity)?.requestAppPermissions()
+                    }
+                    true
+                }
                 R.id.action_toggle_view -> {
                     viewModel.toggleViewMode()
                     true
@@ -163,8 +161,8 @@ class LibraryFragment : Fragment() {
                     findNavController().navigate(R.id.action_library_to_reel)
                     true
                 }
-                R.id.action_cloud_backup -> {
-                    showBackupConfirmation()
+                R.id.action_combine -> {
+                    showCombineDialog()
                     true
                 }
                 else -> false
@@ -193,85 +191,80 @@ class LibraryFragment : Fragment() {
         }
     }
 
-    private fun showBackupConfirmation() {
+    private fun showCombineDialog() {
+        val input = EditText(requireContext()).apply {
+            inputType = InputType.TYPE_CLASS_NUMBER
+            hint = "e.g. 3"
+        }
         MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
-            .setTitle("Backup to Google Drive")
-            .setMessage("This will sync your entire media library, organized by albums, to your Google Drive account.")
-            .setNegativeButton(R.string.action_cancel, null)
-            .setPositiveButton("      SYNC      ") { _, _ ->
-                requestGoogleSignIn()
+            .setTitle("Combine Images")
+            .setMessage("How many images do you want to combine?")
+            .setView(input)
+            .setPositiveButton("Select") { _, _ ->
+                val count = input.text.toString().toIntOrNull() ?: 0
+                if (count > 1) {
+                    startSelectionMode(count)
+                } else {
+                    Toast.makeText(requireContext(), "Enter a number > 1", Toast.LENGTH_SHORT).show()
+                }
             }
+            .setNegativeButton("Cancel", null)
             .show()
     }
 
-    private fun requestGoogleSignIn() {
-        val gso = GoogleSignInOptions.Builder(GoogleSignInOptions.DEFAULT_SIGN_IN)
-            .requestEmail()
-            .requestScopes(Scope(DriveScopes.DRIVE_FILE))
-            .build()
-
-        val client = GoogleSignIn.getClient(requireActivity(), gso)
-        googleSignInLauncher.launch(client.signInIntent)
+    private fun startSelectionMode(count: Int) {
+        targetCombineCount = count
+        Toast.makeText(requireContext(), "Select $count images to combine", Toast.LENGTH_LONG).show()
+        adapter.enterSelectionMode { selectedCount ->
+            if (selectedCount == targetCombineCount) {
+                combineSelectedImages()
+            }
+        }
     }
 
-    @Suppress("DEPRECATION")
-    private fun startCloudBackup(email: String) {
-        val account = GoogleSignIn.getLastSignedInAccount(requireContext()) ?: return
-        val credential = GoogleAccountCredential.usingOAuth2(
-            requireContext(), Collections.singleton(DriveScopes.DRIVE_FILE)
-        ).apply {
-            selectedAccount = account.account
+    private fun combineSelectedImages() {
+        val selected = adapter.getSelectedItems()
+        adapter.exitSelectionMode()
+        
+        if (selected.any { it.isVideo }) {
+            Toast.makeText(requireContext(), "Only images can be combined", Toast.LENGTH_SHORT).show()
+            return
         }
 
-        val driveService = Drive.Builder(
-            AndroidHttp.newCompatibleTransport(),
-            GsonFactory.getDefaultInstance(),
-            credential
-        ).setApplicationName("Hiraeth Flame").build()
-
-        val helper = DriveServiceHelper(driveService)
-
         viewLifecycleOwner.lifecycleScope.launch {
-            Toast.makeText(requireContext(), "Starting backup to Google Drive...", Toast.LENGTH_SHORT).show()
+            Toast.makeText(requireContext(), "Combining images...", Toast.LENGTH_SHORT).show()
             try {
-                val username = email.substringBefore("@")
-                val rootFolderName = "Hiraeth Flame of $username"
-                
-                withContext(Dispatchers.IO) {
-                    var rootId = helper.findFolder(rootFolderName)
-                    if (rootId == null) {
-                        rootId = helper.createFolder(rootFolderName)
-                    }
-                    if (rootId == null) throw Exception("Could not create root folder")
+                val bitmap = withContext(Dispatchers.IO) {
+                    val bitmaps = selected.map { entity ->
+                        val file = container.mediaRepository.resolveFile(entity)
+                        BitmapFactory.decodeFile(file.absolutePath)
+                    }.filterNotNull()
 
-                    val albums = container.albumRepository.observeAlbums().first()
-                    val allMedia = container.mediaRepository.observeAll().first()
+                    if (bitmaps.isEmpty()) return@withContext null
 
-                    for (albumWithMedia in albums) {
-                        val albumFolderId = helper.createFolder(albumWithMedia.album.name, rootId)
-                        for (media in albumWithMedia.media) {
-                            val localFile = container.mediaRepository.resolveFile(media)
-                            if (localFile.exists()) {
-                                helper.uploadFile(localFile, media.mimeType, albumFolderId)
-                            }
-                        }
+                    val totalWidth = bitmaps.maxOf { it.width }
+                    val totalHeight = bitmaps.sumOf { it.height }
+                    val result = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
+                    val canvas = Canvas(result)
+                    var currentY = 0f
+                    for (b in bitmaps) {
+                        canvas.drawBitmap(b, 0f, currentY, null)
+                        currentY += b.height
                     }
-
-                    val mediaInAlbums = albums.asSequence().flatMap { it.media }.map { it.id }.toSet()
-                    val looseMedia = allMedia.filter { it.id !in mediaInAlbums }
-                    if (looseMedia.isNotEmpty()) {
-                        val looseFolderId = helper.createFolder("Unorganized", rootId)
-                        for (media in looseMedia) {
-                            val localFile = container.mediaRepository.resolveFile(media)
-                            if (localFile.exists()) {
-                                helper.uploadFile(localFile, media.mimeType, looseFolderId)
-                            }
-                        }
-                    }
+                    result
                 }
-                Toast.makeText(requireContext(), "Backup complete!", Toast.LENGTH_LONG).show()
+
+                if (bitmap != null) {
+                    container.mediaRepository.saveBitmapAsMedia(
+                        bitmap, 
+                        "Combined Image", 
+                        "Created by combining ${selected.size} images"
+                    )
+                    Toast.makeText(requireContext(), "Image combined and saved!", Toast.LENGTH_SHORT).show()
+                }
             } catch (e: Exception) {
-                Toast.makeText(requireContext(), "Backup failed: ${e.message}", Toast.LENGTH_LONG).show()
+                e.printStackTrace()
+                Toast.makeText(requireContext(), "Failed to combine images", Toast.LENGTH_SHORT).show()
             }
         }
     }

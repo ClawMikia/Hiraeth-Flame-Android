@@ -1,26 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="@android:color/black">
 
-    <!-- Fullscreen Image View -->
-    <com.github.chrisbanes.photoview.PhotoView
-        android:id="@+id/fullscreen_image_view"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:contentDescription="@null"
-        android:visibility="gone" />
-
-    <!-- Fullscreen Player View -->
-    <androidx.media3.ui.PlayerView
-        android:id="@+id/fullscreen_player_view"
-        xmlns:app="http://schemas.android.com/apk/res-auto"
-        android:layout_width="match_parent"
-        android:layout_height="match_parent"
-        android:visibility="gone"
-        app:use_controller="true"
-        app:show_buffering="always" />
+    <androidx.viewpager2.widget.ViewPager2
+        android:id="@+id/fullscreen_view_pager"
+        android:layout_width="0dp"
+        android:layout_height="0dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 
     <!-- Close Button -->
     <com.google.android.material.button.MaterialButton
@@ -28,8 +20,67 @@
         style="@style/Widget.MaterialComponents.Button.OutlinedButton"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_gravity="top|end"
         android:layout_margin="16dp"
         android:text="Close"
-        android:textColor="@android:color/white" />
-</FrameLayout>
+        android:textColor="@android:color/white"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
+
+    <!-- Bottom Controls -->
+    <LinearLayout
+        android:id="@+id/bottom_controls_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#80000000"
+        android:gravity="center"
+        android:orientation="horizontal"
+        android:padding="16dp"
+        app:layout_constraintBottom_toBottomOf="parent">
+
+        <ImageButton
+            android:id="@+id/btn_prev_fullscreen"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_nav_circle"
+            android:contentDescription="@string/nav_previous"
+            android:src="@drawable/ic_chevron_left"
+            app:tint="@color/neon_violet" />
+
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_marginHorizontal="24dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:orientation="vertical">
+
+            <TextView
+                android:id="@+id/tv_fullscreen_title"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:ellipsize="end"
+                android:maxLines="1"
+                android:textColor="@android:color/white"
+                android:textSize="18sp"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/tv_fullscreen_subtitle"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:textColor="#CCCCCC"
+                android:textSize="14sp" />
+        </LinearLayout>
+
+        <ImageButton
+            android:id="@+id/btn_next_fullscreen"
+            android:layout_width="48dp"
+            android:layout_height="48dp"
+            android:background="@drawable/bg_nav_circle"
+            android:contentDescription="@string/nav_next"
+            android:src="@drawable/ic_chevron_right"
+            app:tint="@color/neon_violet" />
+    </LinearLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>

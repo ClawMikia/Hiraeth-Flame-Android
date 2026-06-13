@@ -9,10 +9,18 @@
     <string name="splash_author">- Christopher Lee Cajes</string>
     <string name="nav_previous">Previous</string>
     <string name="nav_next">Next</string>
+    <string name="media_index_format">%1$d of %2$d</string>
     <string name="delete_confirmation_title">Delete Media?</string>
     <string name="delete_confirmation_message">Are you sure you want to permanently delete this item from your library?</string>
     <string name="action_delete">Delete</string>
     <string name="action_cancel">Cancel</string>
-    <string name="action_cloud_backup">Cloud Backup</string>
-    <string name="action_backup">Backup</string>
+    <string name="action_quick_import">Quick Import</string>
+    <string name="action_combine">Combine Images</string>
+    <string name="files_selected_count">%1$d files selected</string>
+    <string name="action_edit_image">Edit Image</string>
+    <string name="brightness">Brightness</string>
+    <string name="rotate">Rotate</string>
+    <string name="crop">Crop</string>
+    <string name="save_changes">Save Changes</string>
+    <string name="image_editor">Image Editor</string>
 </resources>

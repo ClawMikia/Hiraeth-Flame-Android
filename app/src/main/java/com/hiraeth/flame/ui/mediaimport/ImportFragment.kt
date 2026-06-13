@@ -31,17 +31,26 @@ class ImportFragment : Fragment() {
         ImportPreviewViewModel.factory(container.mediaRepository)
     }
 
-    private var pickedUri: Uri? = null
-    private var isVideo: Boolean = false
+    private var pickedUris: List<Uri> = emptyList()
 
-    private val pickLauncher = registerForActivityResult(ActivityResultContracts.GetContent()) { uri ->
-        pickedUri = uri
-        if (uri != null) {
-            val type = requireContext().contentResolver.getType(uri).orEmpty()
-            isVideo = type.startsWith("video/")
-            binding.preview.load(uri) { crossfade(true) }
-
-            binding.detectLabel.text = if (isVideo) "Detected: video" else "Detected: image"
+    private val pickLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        pickedUris = uris
+        if (uris.isNotEmpty()) {
+            val firstUri = uris.first()
+            binding.preview.load(firstUri) { crossfade(true) }
+            
+            val count = uris.size
+            if (count > 1) {
+                binding.detectLabel.text = getString(R.string.files_selected_count, count)
+                binding.titleInput.isEnabled = false
+                binding.titleInput.setText("Multiple Files")
+            } else {
+                val type = requireContext().contentResolver.getType(firstUri).orEmpty()
+                val isVideo = type.startsWith("video/")
+                binding.detectLabel.text = if (isVideo) "Detected: video" else "Detected: image"
+                binding.titleInput.isEnabled = true
+                binding.titleInput.setText(firstUri.lastPathSegment ?: "")
+            }
             binding.errorText.visibility = View.GONE
         }
     }
@@ -57,44 +66,47 @@ class ImportFragment : Fragment() {
         binding.btnPick.setOnClickListener { pickLauncher.launch("*/*") }
 
         binding.btnSave.setOnClickListener {
-            val uri = pickedUri
+            val uris = pickedUris
             val title = binding.titleInput.text?.toString()?.trim().orEmpty()
             val description = binding.descInput.text?.toString()?.trim().orEmpty()
 
-            if (uri == null) {
+            if (uris.isEmpty()) {
                 binding.errorText.visibility = View.VISIBLE
-                binding.errorText.text = "Please select an image or video file first."
+                binding.errorText.text = "Please select at least one image or video file."
                 Toast.makeText(requireContext(), "Save failed: No file selected", Toast.LENGTH_SHORT).show()
-            } else if (title.isEmpty() || description.isEmpty()) {
+            } else if (uris.size == 1 && title.isEmpty()) {
                 binding.errorText.visibility = View.VISIBLE
-                binding.errorText.text = "Please ensure both title and description are filled."
-                if (title.isEmpty()) {
-                    binding.titleInput.requestFocus()
-                } else {
-                    binding.descInput.requestFocus()
-                }
-                Toast.makeText(requireContext(), "Save failed: All details cannot be empty", Toast.LENGTH_SHORT).show()
+                binding.errorText.text = "Please ensure title is filled."
+                Toast.makeText(requireContext(), "Save failed: Title cannot be empty", Toast.LENGTH_SHORT).show()
             } else {
                 binding.errorText.visibility = View.GONE
 
-                Toast.makeText(requireContext(), "Changes saved successfully", Toast.LENGTH_SHORT).show()
-
-                // ✅ FIXED: Parameter list order matches the updated ViewModel implementation signature
-                viewModel.import(
-                    uri = uri,
-                    displayName = title,
-                    description = description,
-                    isVideo = isVideo,
-                    onImported = { id ->
-                        findNavController().navigate(
-                            R.id.action_import_to_detail,
-                            bundleOf(
-                                "mediaId" to id,
-                                "albumId" to -1L
-                            ),
-                        )
+                if (uris.size == 1) {
+                    val uri = uris.first()
+                    val type = requireContext().contentResolver.getType(uri).orEmpty()
+                    val isVideo = type.startsWith("video/")
+                    viewModel.import(
+                        uri = uri,
+                        displayName = title,
+                        description = description,
+                        isVideo = isVideo,
+                        onImported = { id ->
+                            findNavController().navigate(
+                                R.id.action_import_to_detail,
+                                bundleOf("mediaId" to id, "albumId" to -1L),
+                            )
+                        }
+                    )
+                } else {
+                    val items = uris.map { uri ->
+                        val type = requireContext().contentResolver.getType(uri).orEmpty()
+                        uri to type.startsWith("video/")
                     }
-                )
+                    viewModel.importMultiple(items, description) {
+                        Toast.makeText(requireContext(), "Import complete!", Toast.LENGTH_LONG).show()
+                        findNavController().popBackStack()
+                    }
+                }
             }
         }
 
@@ -104,6 +116,7 @@ class ImportFragment : Fragment() {
                     viewModel.busy.collect { busy ->
                         binding.progress.visibility = if (busy) View.VISIBLE else View.GONE
                         binding.btnSave.isEnabled = !busy
+                        binding.btnPick.isEnabled = !busy
                     }
                 }
                 launch {
@@ -113,6 +126,13 @@ class ImportFragment : Fragment() {
                             binding.errorText.text = err
                         } else {
                             binding.errorText.visibility = View.GONE
+                        }
+                    }
+                }
+                launch {
+                    viewModel.progressCount.collect { count ->
+                        if (viewModel.busy.value && viewModel.totalCount.value > 1) {
+                            binding.detectLabel.text = "Importing $count / ${viewModel.totalCount.value}..."
                         }
                     }
                 }

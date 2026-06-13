@@ -13,6 +13,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
+import androidx.viewpager2.widget.CompositePageTransformer
+import androidx.viewpager2.widget.MarginPageTransformer
 import androidx.viewpager2.widget.ViewPager2
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hiraeth.flame.R
@@ -38,6 +40,7 @@ class MediaDetailFragment : Fragment() {
 
     private lateinit var pagerAdapter: MediaPagerAdapter
     private var cachedAlbums: List<AlbumWithMedia> = emptyList()
+    private var isInitialJumpDone = false
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentMediaDetailBinding.inflate(inflater, container, false)
@@ -51,9 +54,27 @@ class MediaDetailFragment : Fragment() {
         )
         binding.toolbar.setupWithNavController(navController, appBarConfig)
 
-        // Setup ViewPager2
+        // Setup ViewPager2 with smooth "soft" transitions
         pagerAdapter = MediaPagerAdapter(container)
         binding.viewPager.adapter = pagerAdapter
+        
+        val transformer = CompositePageTransformer().apply {
+            addTransformer(MarginPageTransformer(40))
+            addTransformer { page, position ->
+                val r = 1 - Math.abs(position)
+                page.scaleY = 0.90f + r * 0.10f
+                page.alpha = 0.5f + r * 0.5f
+            }
+        }
+        binding.viewPager.setPageTransformer(transformer)
+        
+        // Prevent NestedScrollView from intercepting horizontal swipes when touching the media area
+        (binding.viewPager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView)?.let { rv ->
+            rv.setOnTouchListener { v, _ ->
+                v.parent.requestDisallowInterceptTouchEvent(true)
+                false
+            }
+        }
         
         // Sync Pager -> ViewModel
         binding.viewPager.registerOnPageChangeCallback(
@@ -75,15 +96,25 @@ class MediaDetailFragment : Fragment() {
             val title = binding.titleInput.text?.toString()?.trim().orEmpty()
             val description = binding.descInput.text?.toString()?.trim().orEmpty()
 
-            if (title.isNotEmpty() && description.isNotEmpty()) {
+            if (title.isNotEmpty()) {
                 viewModel.saveMetadata(title, description)
                 Toast.makeText(requireContext(), "Changes saved successfully", Toast.LENGTH_SHORT).show()
             } else {
-                Toast.makeText(requireContext(), "Save failed: All details cannot be empty", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Save failed: Title cannot be empty", Toast.LENGTH_LONG).show()
             }
         }
 
         binding.btnAddAlbum.setOnClickListener { showAlbumPicker() }
+
+        binding.btnEditImage.setOnClickListener {
+            val m = viewModel.media.value
+            if (m != null) {
+                findNavController().navigate(
+                    R.id.action_mediaDetail_to_imageEditor,
+                    Bundle().apply { putLong("mediaId", m.id) }
+                )
+            }
+        }
 
         binding.btnDelete.setOnClickListener {
             showDeleteConfirmation()
@@ -99,8 +130,7 @@ class MediaDetailFragment : Fragment() {
         binding.btnFullscreen.setOnClickListener {
             val m = viewModel.media.value
             if (m != null) {
-                val file = container.mediaStorage.resolveRelative(m.relativePath)
-                FullscreenMediaDialogFragment.newInstance(file, m.isVideo)
+                FullscreenMediaDialogFragment.newInstance(m.id, albumId)
                     .show(parentFragmentManager, "fullscreen_media")
             }
         }
@@ -114,11 +144,12 @@ class MediaDetailFragment : Fragment() {
                 launch {
                     viewModel.navigationItems.collect { items ->
                         pagerAdapter.submitList(items) {
-                            // After list is submitted, find the initial item and jump to it
-                            val initialId = mediaId
-                            val index = items.indexOfFirst { it.id == initialId }
-                            if (index != -1 && (binding.viewPager.currentItem != index)) {
-                                binding.viewPager.setCurrentItem(index, false)
+                            if (!isInitialJumpDone) {
+                                val index = items.indexOfFirst { it.id == mediaId }
+                                if (index != -1) {
+                                    binding.viewPager.setCurrentItem(index, false)
+                                    isInitialJumpDone = true
+                                }
                             }
                         }
                     }
@@ -127,6 +158,7 @@ class MediaDetailFragment : Fragment() {
                 launch {
                     viewModel.media.collect { m ->
                         if (m == null) return@collect
+                        binding.btnEditImage.visibility = if (m.isVideo) View.GONE else View.VISIBLE
                         if (!binding.titleInput.hasFocus()) {
                             binding.titleInput.setText(m.displayName)
                         }

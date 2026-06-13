@@ -5,6 +5,8 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.TextView
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -17,7 +19,9 @@ import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hiraeth.flame.R
 import com.hiraeth.flame.databinding.FragmentAlbumDetailBinding
 import com.hiraeth.flame.ui.library.MediaLibraryAdapter
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 class AlbumDetailFragment : Fragment() {
 
@@ -28,10 +32,44 @@ class AlbumDetailFragment : Fragment() {
     private val albumId: Long get() = requireArguments().getLong("albumId")
 
     private val viewModel: AlbumDetailViewModel by viewModels {
-        AlbumDetailViewModel.factory(container.albumRepository, albumId)
+        AlbumDetailViewModel.factory(container.albumRepository, container.mediaRepository, albumId)
     }
 
     private lateinit var adapter: MediaLibraryAdapter
+
+    private val createZipLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        if (uri != null) {
+            viewModel.exportToZip(requireContext(), uri) { success ->
+                if (success) {
+                    Toast.makeText(requireContext(), "Album exported successfully!", Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), "Export failed", Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
+
+    private val addFromDeviceLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
+        if (uris.isNotEmpty()) {
+            viewLifecycleOwner.lifecycleScope.launch {
+                Toast.makeText(requireContext(), "Adding ${uris.size} items to album...", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.IO) {
+                    uris.forEach { uri ->
+                        try {
+                            val type = requireContext().contentResolver.getType(uri).orEmpty()
+                            val isVideo = type.startsWith("video/")
+                            val name = uri.lastPathSegment ?: "Imported Media"
+                            val mediaId = container.mediaRepository.importFromUri(uri, name, "Added to album from device", isVideo)
+                            container.albumRepository.addToAlbum(albumId, mediaId)
+                        } catch (e: Exception) {
+                            e.printStackTrace()
+                        }
+                    }
+                }
+                Toast.makeText(requireContext(), "Import to album complete!", Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAlbumDetailBinding.inflate(inflater, container, false)
@@ -54,6 +92,13 @@ class AlbumDetailFragment : Fragment() {
 
         binding.btnEditAlbum.setOnClickListener { showEditAlbumDialog() }
         binding.btnFilter.setOnClickListener { showFilterDialog() }
+        binding.btnExport.setOnClickListener {
+            val albumName = viewModel.albumWithMedia.value?.album?.name ?: "Album"
+            createZipLauncher.launch("${albumName.replace(" ", "_")}.zip")
+        }
+        binding.btnAddDevice.setOnClickListener {
+            addFromDeviceLauncher.launch("*/*")
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -66,6 +111,14 @@ class AlbumDetailFragment : Fragment() {
                 }
                 launch {
                     viewModel.filteredMedia.collect { adapter.submitList(it) }
+                }
+                launch {
+                    viewModel.isExporting.collect { exporting ->
+                        binding.btnExport.isEnabled = !exporting
+                        if (exporting) {
+                            Toast.makeText(requireContext(), "Zipping album...", Toast.LENGTH_SHORT).show()
+                        }
+                    }
                 }
             }
         }
@@ -114,11 +167,9 @@ class AlbumDetailFragment : Fragment() {
         val titleText = (dialogView as? ViewGroup)?.let { findFirstTextView(it) }
         titleText?.text = "Filter Media"
 
-        // Remove the hardcoded text hint placeholder and update the text field label
         inputFilter.hint = null
         inputFilter.setText(viewModel.filter.value)
 
-        // Safely updates the TextInputLayout floating hint label wrapper if it exists
         (inputFilter.parent?.parent as? com.google.android.material.textfield.TextInputLayout)?.hint = "Anything from the album"
         (inputFilter.parent as? com.google.android.material.textfield.TextInputLayout)?.hint = "Anything from the album"
 

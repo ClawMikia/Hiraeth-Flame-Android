@@ -2,6 +2,11 @@
 <menu xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto">
     <item
+        android:id="@+id/action_quick_import"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="Quick Import"
+        app:showAsAction="ifRoom" />
+    <item
         android:id="@+id/action_toggle_view"
         android:icon="@android:drawable/ic_menu_view"
         android:title="List / grid"
@@ -12,8 +17,8 @@
         android:title="Reel studio"
         app:showAsAction="ifRoom" />
     <item
-        android:id="@+id/action_cloud_backup"
-        android:icon="@android:drawable/stat_sys_upload"
-        android:title="Cloud Backup"
-        app:showAsAction="ifRoom" />
+        android:id="@+id/action_combine"
+        android:icon="@android:drawable/ic_menu_add"
+        android:title="@string/action_combine"
+        app:showAsAction="never" />
 </menu>

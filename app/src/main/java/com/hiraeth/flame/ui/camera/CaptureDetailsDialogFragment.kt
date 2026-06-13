@@ -35,11 +35,11 @@ class CaptureDetailsDialogFragment : DialogFragment() {
             val title = binding.titleInput.text?.toString()?.trim().orEmpty()
             val description = binding.descInput.text?.toString()?.trim().orEmpty()
 
-            if (title.isNotEmpty() && description.isNotEmpty()) {
+            if (title.isNotEmpty()) {
                 onSavedListener?.invoke(title, description)
                 dismiss()
             } else {
-                Toast.makeText(requireContext(), "Save failed: All details cannot be empty", Toast.LENGTH_LONG).show()
+                Toast.makeText(requireContext(), "Save failed: Title cannot be empty", Toast.LENGTH_LONG).show()
             }
         }
 

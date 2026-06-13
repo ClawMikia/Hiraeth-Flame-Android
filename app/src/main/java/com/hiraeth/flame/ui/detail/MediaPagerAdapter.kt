@@ -46,6 +46,9 @@ class MediaPagerAdapter(
             holder.binding.playerView.player = null
             holder.binding.imageView.visibility = View.VISIBLE
             holder.binding.imageView.load(file) { crossfade(true) }
+            
+            // PhotoView handles its own internal zoom. 
+            // ViewPager2 will work correctly as long as we don't interfere with touch events.
         }
     }
 

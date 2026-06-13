@@ -19,6 +19,12 @@ class ImportPreviewViewModel(
     private val _error = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = _error
 
+    private val _progressCount = MutableStateFlow(0)
+    val progressCount: StateFlow<Int> = _progressCount
+
+    private val _totalCount = MutableStateFlow(0)
+    val totalCount: StateFlow<Int> = _totalCount
+
     fun import(
         uri: Uri,
         displayName: String,
@@ -30,7 +36,6 @@ class ImportPreviewViewModel(
             _busy.value = true
             _error.value = null
             runCatching {
-                // Passes title, description, and metadata down cleanly into repository layer function
                 repository.importFromUri(uri, displayName, description, isVideo)
             }.onSuccess { id ->
                 onImported(id)
@@ -38,6 +43,36 @@ class ImportPreviewViewModel(
                 _error.value = it.message ?: "Import failed"
             }
             _busy.value = false
+        }
+    }
+
+    fun importMultiple(
+        items: List<Pair<Uri, Boolean>>,
+        commonDescription: String,
+        onDone: () -> Unit
+    ) {
+        viewModelScope.launch {
+            _busy.value = true
+            _error.value = null
+            _totalCount.value = items.size
+            _progressCount.value = 0
+            
+            var hasError = false
+            items.forEach { (uri, isVideo) ->
+                runCatching {
+                    val name = uri.lastPathSegment ?: "Imported Media"
+                    repository.importFromUri(uri, name, commonDescription, isVideo)
+                }.onFailure {
+                    hasError = true
+                }
+                _progressCount.value++
+            }
+            
+            if (hasError) {
+                _error.value = "Some files failed to import"
+            }
+            _busy.value = false
+            onDone()
         }
     }
 

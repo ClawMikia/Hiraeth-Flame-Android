@@ -10,30 +10,43 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
 import androidx.fragment.app.DialogFragment
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import coil.load
+import androidx.fragment.app.viewModels
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.viewpager2.widget.CompositePageTransformer
+import androidx.viewpager2.widget.MarginPageTransformer
+import androidx.viewpager2.widget.ViewPager2
 import com.hiraeth.flame.databinding.FragmentMediaFullscreenBinding
-import java.io.File
+import com.hiraeth.flame.di.AppContainer
+import kotlinx.coroutines.launch
 
 class FullscreenMediaDialogFragment : DialogFragment() {
 
     private var _binding: FragmentMediaFullscreenBinding? = null
     private val binding get() = _binding!!
 
-    private var player: ExoPlayer? = null
-    private var isVideo: Boolean = false
-    private var mediaFile: File? = null
+    private val container: AppContainer get() = (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
+
+    private val initialMediaId: Long get() = requireArguments().getLong(ARG_MEDIA_ID)
+    private val albumId: Long get() = requireArguments().getLong(ARG_ALBUM_ID, -1L)
+
+    private val viewModel: MediaDetailViewModel by viewModels {
+        MediaDetailViewModel.factory(container.mediaRepository, container.albumRepository, initialMediaId, albumId)
+    }
+
+    private lateinit var pagerAdapter: MediaPagerAdapter
+    private var isInitialJumpDone = false
 
     companion object {
-        private const val ARG_FILE = "file"
-        private const val ARG_IS_VIDEO = "is_video"
+        private const val ARG_MEDIA_ID = "media_id"
+        private const val ARG_ALBUM_ID = "album_id"
 
-        fun newInstance(file: File, isVideo: Boolean): FullscreenMediaDialogFragment {
+        fun newInstance(mediaId: Long, albumId: Long = -1L): FullscreenMediaDialogFragment {
             return FullscreenMediaDialogFragment().apply {
                 arguments = Bundle().apply {
-                    putString(ARG_FILE, file.absolutePath)
-                    putBoolean(ARG_IS_VIDEO, isVideo)
+                    putLong(ARG_MEDIA_ID, mediaId)
+                    putLong(ARG_ALBUM_ID, albumId)
                 }
             }
         }
@@ -41,7 +54,6 @@ class FullscreenMediaDialogFragment : DialogFragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        // Set fullscreen style for dialog
         setStyle(STYLE_NORMAL, android.R.style.Theme_Black_NoTitleBar_Fullscreen)
     }
 
@@ -56,49 +68,83 @@ class FullscreenMediaDialogFragment : DialogFragment() {
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        val filePath = arguments?.getString(ARG_FILE) ?: return
-        isVideo = arguments?.getBoolean(ARG_IS_VIDEO) ?: false
-        mediaFile = File(filePath)
-
-        // Hide system UI for immersive fullscreen
         hideSystemUI()
 
-        // Close button listener
+        pagerAdapter = MediaPagerAdapter(container)
+        binding.fullscreenViewPager.adapter = pagerAdapter
+
+        // Apply "soft" transitions for premium feel
+        val transformer = CompositePageTransformer().apply {
+            addTransformer(MarginPageTransformer(40))
+            addTransformer { page, position ->
+                val r = 1 - Math.abs(position)
+                page.scaleY = 0.92f + r * 0.08f
+                page.alpha = 0.6f + r * 0.4f
+            }
+        }
+        binding.fullscreenViewPager.setPageTransformer(transformer)
+
+        binding.fullscreenViewPager.registerOnPageChangeCallback(object : ViewPager2.OnPageChangeCallback() {
+            override fun onPageSelected(position: Int) {
+                pagerAdapter.playVideo(position, binding.fullscreenViewPager.getChildAt(0) as androidx.recyclerview.widget.RecyclerView)
+                updateUIForPosition(position)
+            }
+        })
+
+        binding.btnPrevFullscreen.setOnClickListener {
+            val current = binding.fullscreenViewPager.currentItem
+            if (current > 0) binding.fullscreenViewPager.setCurrentItem(current - 1, true)
+        }
+
+        binding.btnNextFullscreen.setOnClickListener {
+            val current = binding.fullscreenViewPager.currentItem
+            if (current < pagerAdapter.itemCount - 1) binding.fullscreenViewPager.setCurrentItem(current + 1, true)
+        }
+
         binding.btnCloseFullscreen.setOnClickListener {
             dismiss()
         }
 
-        // Load media
-        if (isVideo) {
-            binding.fullscreenPlayerView.visibility = View.VISIBLE
-            binding.fullscreenImageView.visibility = View.GONE
-
-            player = ExoPlayer.Builder(requireContext()).build().also { exo ->
-                exo.setMediaItem(MediaItem.fromUri(android.net.Uri.fromFile(mediaFile)))
-                exo.prepare()
-                exo.playWhenReady = true // Auto-play when opening fullscreen
-                binding.fullscreenPlayerView.player = exo
+        viewLifecycleOwner.lifecycleScope.launch {
+            viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                viewModel.navigationItems.collect { items ->
+                    pagerAdapter.submitList(items) {
+                        if (!isInitialJumpDone) {
+                            val index = items.indexOfFirst { it.id == initialMediaId }
+                            if (index != -1) {
+                                binding.fullscreenViewPager.setCurrentItem(index, false)
+                                isInitialJumpDone = true
+                            }
+                        }
+                    }
+                }
             }
-        } else {
-            binding.fullscreenImageView.visibility = View.VISIBLE
-            binding.fullscreenPlayerView.visibility = View.GONE
-
-            binding.fullscreenImageView.load(mediaFile) { crossfade(true) }
         }
     }
 
     override fun onStart() {
         super.onStart()
         dialog?.window?.let { dialogWindow ->
-            // Force the dialog's window container layout to use complete screen real estate
             dialogWindow.setLayout(
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT
             )
-            // Properly configure navigation bar color to solid black
             dialogWindow.navigationBarColor = ContextCompat.getColor(requireContext(), android.R.color.black)
         }
+    }
+
+    private fun updateUIForPosition(position: Int) {
+        val items = pagerAdapter.currentList
+        if (items.isEmpty()) return
+
+        val item = items[position]
+        binding.tvFullscreenTitle.text = item.displayName
+        binding.tvFullscreenSubtitle.text = getString(com.hiraeth.flame.R.string.media_index_format, position + 1, items.size)
+
+        binding.btnPrevFullscreen.visibility = if (position > 0) View.VISIBLE else View.INVISIBLE
+        binding.btnNextFullscreen.visibility = if (position < items.size - 1) View.VISIBLE else View.INVISIBLE
+        
+        viewModel.setCurrentId(item.id)
     }
 
     private fun hideSystemUI() {
@@ -119,13 +165,7 @@ class FullscreenMediaDialogFragment : DialogFragment() {
     override fun onDestroyView() {
         super.onDestroyView()
         showSystemUI()
-        releasePlayer()
+        pagerAdapter.releasePlayer()
         _binding = null
-    }
-
-    private fun releasePlayer() {
-        binding.fullscreenPlayerView.player = null
-        player?.release()
-        player = null
     }
 }

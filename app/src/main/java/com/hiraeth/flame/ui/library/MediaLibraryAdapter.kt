@@ -17,6 +17,10 @@ class MediaLibraryAdapter(
     private val onItemClick: (Long) -> Unit,
 ) : ListAdapter<MediaEntity, RecyclerView.ViewHolder>(DIFF) {
 
+    private var selectionMode = false
+    private val selectedIds = mutableSetOf<Long>()
+    private var onSelectionChanged: ((Int) -> Unit)? = null
+
     companion object {
         private const val TYPE_GRID = 0
         private const val TYPE_LIST = 1
@@ -34,7 +38,24 @@ class MediaLibraryAdapter(
         }
     }
 
-    
+    fun enterSelectionMode(listener: (Int) -> Unit) {
+        selectionMode = true
+        selectedIds.clear()
+        onSelectionChanged = listener
+        notifyDataSetChanged()
+    }
+
+    fun exitSelectionMode() {
+        selectionMode = false
+        selectedIds.clear()
+        onSelectionChanged = null
+        notifyDataSetChanged()
+    }
+
+    fun getSelectedItems(): List<MediaEntity> {
+        return currentList.filter { it.id in selectedIds }
+    }
+
     override fun getItemViewType(position: Int): Int =
         if (gridMode) TYPE_GRID else TYPE_LIST
 
@@ -50,12 +71,21 @@ class MediaLibraryAdapter(
     override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
         val item = getItem(position)
         val file = container.mediaStorage.resolveRelative(item.relativePath)
+        val isSelected = selectedIds.contains(item.id)
+
         when (holder) {
             is GridVH -> {
                 holder.binding.thumbnail.load(file) { crossfade(300) }
                 holder.binding.title.text = item.displayName
                 holder.binding.subtitle.text = if (item.isVideo) "VIDEO" else "PHOTO"
-                holder.itemView.setOnClickListener { onItemClick(item.id) }
+                holder.binding.root.alpha = if (selectionMode && !isSelected) 0.5f else 1.0f
+                holder.itemView.setOnClickListener {
+                    if (selectionMode) {
+                        toggleSelection(item.id)
+                    } else {
+                        onItemClick(item.id)
+                    }
+                }
             }
             is ListVH -> {
                 holder.binding.thumbnail.load(file) { crossfade(300) }
@@ -63,9 +93,26 @@ class MediaLibraryAdapter(
                 val sizeKb = item.sizeBytes / 1024
                 holder.binding.subtitle.text =
                     if (item.isVideo) "Video · $sizeKb KB" else "Photo · $sizeKb KB"
-                holder.itemView.setOnClickListener { onItemClick(item.id) }
+                holder.binding.root.alpha = if (selectionMode && !isSelected) 0.5f else 1.0f
+                holder.itemView.setOnClickListener {
+                    if (selectionMode) {
+                        toggleSelection(item.id)
+                    } else {
+                        onItemClick(item.id)
+                    }
+                }
             }
         }
+    }
+
+    private fun toggleSelection(id: Long) {
+        if (selectedIds.contains(id)) {
+            selectedIds.remove(id)
+        } else {
+            selectedIds.add(id)
+        }
+        onSelectionChanged?.invoke(selectedIds.size)
+        notifyDataSetChanged()
     }
 
     class GridVH(val binding: ItemMediaGridBinding) : RecyclerView.ViewHolder(binding.root)

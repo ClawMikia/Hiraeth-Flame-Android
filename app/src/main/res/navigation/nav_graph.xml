@@ -77,6 +77,19 @@
             android:name="albumId"
             android:defaultValue="-1L"
             app:argType="long" />
+        <action
+            android:id="@+id/action_mediaDetail_to_imageEditor"
+            app:destination="@id/imageEditorFragment" />
+    </fragment>
+
+    <fragment
+        android:id="@+id/imageEditorFragment"
+        android:name="com.hiraeth.flame.ui.editor.ImageEditorFragment"
+        android:label="Editor"
+        tools:layout="@layout/fragment_image_editor">
+        <argument
+            android:name="mediaId"
+            app:argType="long" />
     </fragment>
 
     <fragment
