@@ -45,10 +45,6 @@ class AlbumsFragment : Fragment() {
             onAlbumClick = { id ->
                 val b = Bundle().apply { putLong("albumId", id) }
                 findNavController().navigate(R.id.action_albums_to_albumDetail, b)
-            },
-            onMediaClick = { id ->
-                val b = Bundle().apply { putLong("mediaId", id) }
-                findNavController().navigate(R.id.action_albums_to_detail, b)
             }
         )
         binding.recycler.layoutManager = LinearLayoutManager(requireContext())

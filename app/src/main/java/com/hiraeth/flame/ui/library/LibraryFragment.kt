@@ -192,14 +192,14 @@ class LibraryFragment : Fragment() {
     }
 
     private fun showCombineDialog() {
-        val input = EditText(requireContext()).apply {
-            inputType = InputType.TYPE_CLASS_NUMBER
-            hint = "e.g. 3"
-        }
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_combine_images, null)
+        val input = dialogView.findViewById<EditText>(R.id.combine_count_input)
+        input.hint = "e.g. 3"
+
         MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
             .setTitle("Combine Images")
             .setMessage("How many images do you want to combine?")
-            .setView(input)
+            .setView(dialogView)
             .setPositiveButton("Select") { _, _ ->
                 val count = input.text.toString().toIntOrNull() ?: 0
                 if (count > 1) {
@@ -242,14 +242,50 @@ class LibraryFragment : Fragment() {
 
                     if (bitmaps.isEmpty()) return@withContext null
 
-                    val totalWidth = bitmaps.maxOf { it.width }
-                    val totalHeight = bitmaps.sumOf { it.height }
+                    val n = bitmaps.size
+                    val cols = Math.ceil(Math.sqrt(n.toDouble())).toInt()
+                    val rows = Math.ceil(n.toDouble() / cols).toInt()
+
+                    val cellWidth = bitmaps.maxOf { it.width }
+                    val cellHeight = bitmaps.maxOf { it.height }
+                    
+                    val totalWidth = cellWidth * cols
+                    val totalHeight = cellHeight * rows
+                    
                     val result = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
                     val canvas = Canvas(result)
-                    var currentY = 0f
-                    for (b in bitmaps) {
-                        canvas.drawBitmap(b, 0f, currentY, null)
-                        currentY += b.height
+                    canvas.drawColor(android.graphics.Color.BLACK) // Background for gaps
+
+                    for (i in bitmaps.indices) {
+                        val r = i / cols
+                        val c = i % cols
+                        val b = bitmaps[i]
+                        
+                        val left = c * cellWidth.toFloat()
+                        val top = r * cellHeight.toFloat()
+                        
+                        // Calculate Center Crop matrix
+                        val matrix = android.graphics.Matrix()
+                        val scale: Float
+                        var dx = 0f
+                        var dy = 0f
+
+                        if (b.width * cellHeight > cellWidth * b.height) {
+                            scale = cellHeight.toFloat() / b.height.toFloat()
+                            dx = (cellWidth - b.width * scale) * 0.5f
+                        } else {
+                            scale = cellWidth.toFloat() / b.width.toFloat()
+                            dy = (cellHeight - b.height * scale) * 0.5f
+                        }
+
+                        matrix.setScale(scale, scale)
+                        matrix.postTranslate(left + dx, top + dy)
+                        
+                        // Clip to cell
+                        canvas.save()
+                        canvas.clipRect(left, top, left + cellWidth, top + cellHeight)
+                        canvas.drawBitmap(b, matrix, null)
+                        canvas.restore()
                     }
                     result
                 }
