@@ -13,6 +13,8 @@ import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
+import androidx.media3.common.MediaItem
+import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
 import coil.load
@@ -28,28 +30,46 @@ class ImportFragment : Fragment() {
     private val container get() = (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
 
     private val viewModel: ImportPreviewViewModel by viewModels {
-        ImportPreviewViewModel.factory(container.mediaRepository)
+        ImportPreviewViewModel.factory(container.mediaRepository, container.albumRepository)
     }
 
     private var pickedUris: List<Uri> = emptyList()
+    private var previewPlayer: ExoPlayer? = null
 
     private val pickLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
         pickedUris = uris
+        releasePreviewPlayer()
+        
         if (uris.isNotEmpty()) {
             val firstUri = uris.first()
-            binding.preview.load(firstUri) { crossfade(true) }
+            val type = requireContext().contentResolver.getType(firstUri).orEmpty()
+            val isVideo = type.startsWith("video/")
+
+            if (isVideo && uris.size == 1) {
+                binding.preview.visibility = View.GONE
+                binding.videoPreview.visibility = View.VISIBLE
+                setupPreviewPlayer(firstUri)
+            } else {
+                binding.preview.visibility = View.VISIBLE
+                binding.videoPreview.visibility = View.GONE
+                binding.preview.load(firstUri) { crossfade(true) }
+            }
             
             val count = uris.size
             if (count > 1) {
                 binding.detectLabel.text = getString(R.string.files_selected_count, count)
                 binding.titleInput.isEnabled = false
                 binding.titleInput.setText("Multiple Files")
+                binding.switchCreateAlbum.isChecked = true
+                binding.albumNameLayout.visibility = View.VISIBLE
+                binding.albumNameInput.setText("Imported Selection")
             } else {
-                val type = requireContext().contentResolver.getType(firstUri).orEmpty()
-                val isVideo = type.startsWith("video/")
                 binding.detectLabel.text = if (isVideo) "Detected: video" else "Detected: image"
                 binding.titleInput.isEnabled = true
-                binding.titleInput.setText(firstUri.lastPathSegment ?: "")
+                val fileName = firstUri.lastPathSegment ?: ""
+                binding.titleInput.setText(fileName)
+                binding.switchCreateAlbum.isChecked = false
+                binding.albumNameLayout.visibility = View.GONE
             }
             binding.errorText.visibility = View.GONE
         }
@@ -65,10 +85,17 @@ class ImportFragment : Fragment() {
 
         binding.btnPick.setOnClickListener { pickLauncher.launch("*/*") }
 
+        binding.switchCreateAlbum.setOnCheckedChangeListener { _, isChecked ->
+            binding.albumNameLayout.visibility = if (isChecked) View.VISIBLE else View.GONE
+        }
+
         binding.btnSave.setOnClickListener {
             val uris = pickedUris
             val title = binding.titleInput.text?.toString()?.trim().orEmpty()
             val description = binding.descInput.text?.toString()?.trim().orEmpty()
+            val albumName = if (binding.switchCreateAlbum.isChecked) {
+                binding.albumNameInput.text?.toString()?.trim()
+            } else null
 
             if (uris.isEmpty()) {
                 binding.errorText.visibility = View.VISIBLE
@@ -78,6 +105,9 @@ class ImportFragment : Fragment() {
                 binding.errorText.visibility = View.VISIBLE
                 binding.errorText.text = "Please ensure title is filled."
                 Toast.makeText(requireContext(), "Save failed: Title cannot be empty", Toast.LENGTH_SHORT).show()
+            } else if (binding.switchCreateAlbum.isChecked && albumName.isNullOrBlank()) {
+                binding.errorText.visibility = View.VISIBLE
+                binding.errorText.text = "Please provide an album name."
             } else {
                 binding.errorText.visibility = View.GONE
 
@@ -90,6 +120,7 @@ class ImportFragment : Fragment() {
                         displayName = title,
                         description = description,
                         isVideo = isVideo,
+                        albumName = albumName,
                         onImported = { id ->
                             findNavController().navigate(
                                 R.id.action_import_to_detail,
@@ -102,7 +133,7 @@ class ImportFragment : Fragment() {
                         val type = requireContext().contentResolver.getType(uri).orEmpty()
                         uri to type.startsWith("video/")
                     }
-                    viewModel.importMultiple(items, description) {
+                    viewModel.importMultiple(items, description, albumName) {
                         Toast.makeText(requireContext(), "Import complete!", Toast.LENGTH_LONG).show()
                         findNavController().popBackStack()
                     }
@@ -140,8 +171,30 @@ class ImportFragment : Fragment() {
         }
     }
 
+    private fun setupPreviewPlayer(uri: Uri) {
+        previewPlayer = ExoPlayer.Builder(requireContext()).build().also { player ->
+            player.setMediaItem(MediaItem.fromUri(uri))
+            player.prepare()
+            player.playWhenReady = true
+            player.repeatMode = ExoPlayer.REPEAT_MODE_ALL
+            binding.videoPreview.player = player
+        }
+    }
+
+    private fun releasePreviewPlayer() {
+        previewPlayer?.release()
+        previewPlayer = null
+        binding.videoPreview.player = null
+    }
+
+    override fun onPause() {
+        super.onPause()
+        previewPlayer?.playWhenReady = false
+    }
+
     override fun onDestroyView() {
         super.onDestroyView()
+        releasePreviewPlayer()
         _binding = null
     }
 }

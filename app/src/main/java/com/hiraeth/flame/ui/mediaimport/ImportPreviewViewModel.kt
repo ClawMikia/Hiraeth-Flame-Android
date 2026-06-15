@@ -4,6 +4,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import com.hiraeth.flame.data.repository.AlbumRepository
 import com.hiraeth.flame.data.repository.MediaRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -11,6 +12,7 @@ import kotlinx.coroutines.launch
 
 class ImportPreviewViewModel(
     private val repository: MediaRepository,
+    private val albumRepository: AlbumRepository,
 ) : ViewModel() {
 
     private val _busy = MutableStateFlow(value = false)
@@ -30,13 +32,19 @@ class ImportPreviewViewModel(
         displayName: String,
         description: String,
         isVideo: Boolean,
+        albumName: String? = null,
         onImported: (Long) -> Unit,
     ) {
         viewModelScope.launch {
             _busy.value = true
             _error.value = null
             runCatching {
-                repository.importFromUri(uri, displayName, description, isVideo)
+                val mediaId = repository.importFromUri(uri, displayName, description, isVideo)
+                if (!albumName.isNullOrBlank()) {
+                    val albumId = albumRepository.createAlbum(albumName, "Imported from device")
+                    albumRepository.addToAlbum(albumId, mediaId)
+                }
+                mediaId
             }.onSuccess { id ->
                 onImported(id)
             }.onFailure {
@@ -49,6 +57,7 @@ class ImportPreviewViewModel(
     fun importMultiple(
         items: List<Pair<Uri, Boolean>>,
         commonDescription: String,
+        albumName: String? = null,
         onDone: () -> Unit
     ) {
         viewModelScope.launch {
@@ -58,10 +67,17 @@ class ImportPreviewViewModel(
             _progressCount.value = 0
             
             var hasError = false
+            val albumId = if (!albumName.isNullOrBlank()) {
+                albumRepository.createAlbum(albumName, "Imported collection")
+            } else null
+
             items.forEach { (uri, isVideo) ->
                 runCatching {
                     val name = uri.lastPathSegment ?: "Imported Media"
-                    repository.importFromUri(uri, name, commonDescription, isVideo)
+                    val mediaId = repository.importFromUri(uri, name, commonDescription, isVideo)
+                    if (albumId != null) {
+                        albumRepository.addToAlbum(albumId, mediaId)
+                    }
                 }.onFailure {
                     hasError = true
                 }
@@ -77,12 +93,12 @@ class ImportPreviewViewModel(
     }
 
     companion object {
-        fun factory(repository: MediaRepository): ViewModelProvider.Factory =
+        fun factory(repository: MediaRepository, albumRepository: AlbumRepository): ViewModelProvider.Factory =
             object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T {
                     require(modelClass.isAssignableFrom(ImportPreviewViewModel::class.java))
-                    return ImportPreviewViewModel(repository) as T
+                    return ImportPreviewViewModel(repository, albumRepository) as T
                 }
             }
     }

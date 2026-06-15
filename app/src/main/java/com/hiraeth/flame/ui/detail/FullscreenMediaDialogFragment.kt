@@ -91,6 +91,19 @@ class FullscreenMediaDialogFragment : DialogFragment() {
             }
         })
 
+        binding.btnRotate.setOnClickListener {
+            pagerAdapter.rotate(binding.fullscreenViewPager.currentItem, binding.fullscreenViewPager.getChildAt(0) as androidx.recyclerview.widget.RecyclerView)
+        }
+
+        binding.btnOrientation.setOnClickListener {
+            val activity = requireActivity()
+            activity.requestedOrientation = if (activity.resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_PORTRAIT) {
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+            } else {
+                android.content.pm.ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+            }
+        }
+
         binding.btnPrevFullscreen.setOnClickListener {
             val current = binding.fullscreenViewPager.currentItem
             if (current > 0) binding.fullscreenViewPager.setCurrentItem(current - 1, true)
@@ -144,6 +157,8 @@ class FullscreenMediaDialogFragment : DialogFragment() {
         binding.btnPrevFullscreen.visibility = if (position > 0) View.VISIBLE else View.INVISIBLE
         binding.btnNextFullscreen.visibility = if (position < items.size - 1) View.VISIBLE else View.INVISIBLE
         
+        binding.imageControls.visibility = if (item.isVideo) View.GONE else View.VISIBLE
+
         viewModel.setCurrentId(item.id)
     }
 

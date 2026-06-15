@@ -25,8 +25,8 @@ class ReelStudioViewModel(
     private val reelsRoot: File,
 ) : ViewModel() {
 
-    private val _selected = MutableStateFlow<Set<Long>>(emptySet())
-    val selected: StateFlow<Set<Long>> = _selected
+    private val _selected = MutableStateFlow<List<Long>>(emptyList())
+    val selected: StateFlow<List<Long>> = _selected
 
     val videos: StateFlow<List<MediaEntity>> = repository.observeAll()
         .map { list -> list.filter { it.isVideo } }
@@ -36,37 +36,46 @@ class ReelStudioViewModel(
     val status: StateFlow<String?> = _status
 
     fun toggle(id: Long) {
-        _selected.value = if (_selected.value.contains(id)) {
-            _selected.value - id
+        val current = _selected.value.toMutableList()
+        if (current.contains(id)) {
+            current.remove(id)
         } else {
-            _selected.value + id
+            current.add(id)
         }
+        _selected.value = current
     }
 
     fun clearSelection() {
-        _selected.value = emptySet()
+        _selected.value = emptyList()
     }
 
     fun stageReelProject() {
         viewModelScope.launch {
-            val ids = _selected.value.toList()
+            val ids = _selected.value
             if (ids.size < 2) {
                 _status.value = "Select at least two videos."
                 return@launch
             }
+            _status.value = "Staging ${ids.size} clips..."
             runCatching {
                 withContext(Dispatchers.IO) {
-                    val folder = File(reelsRoot, "reel_${System.currentTimeMillis()}").apply { mkdirs() }
+                    val folderName = "reel_${System.currentTimeMillis()}"
+                    val folder = File(reelsRoot, folderName).apply { mkdirs() }
+                    if (!folder.exists()) throw Exception("Failed to create folder $folderName")
+
                     ids.forEachIndexed { index, mediaId ->
                         val entity = repository.getById(mediaId) ?: return@forEachIndexed
                         val src = repository.resolveFile(entity)
-                        val dest = File(folder, "${index.toString().padStart(2, '0')}_${UUID.randomUUID()}.mp4")
+                        if (!src.exists()) return@forEachIndexed
+                        val dest = File(folder, "${index.toString().padStart(2, '0')}_clip.mp4")
                         src.copyTo(dest, overwrite = true)
                     }
-                    _status.value = "Staged ${ids.size} clips in ${folder.name}. Merge with Media3 Transformer for a single MP4."
+                    folderName
                 }
+            }.onSuccess { folderName ->
+                _status.value = "Staged in $folderName. Files ready for processing."
             }.onFailure {
-                _status.value = it.message ?: "Could not stage reel"
+                _status.value = "Error: ${it.message}"
             }
         }
     }

@@ -4,6 +4,8 @@ import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -27,10 +29,16 @@ class AlbumsFragment : Fragment() {
         (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
 
     private val viewModel: AlbumsViewModel by viewModels {
-        AlbumsViewModel.factory(container.albumRepository)
+        AlbumsViewModel.factory(container.albumRepository, container.mediaRepository)
     }
 
     private lateinit var adapter: AlbumsAdapter
+
+    private val folderPickerLauncher = registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+        uri?.let {
+            viewModel.importFolder(requireContext(), it)
+        }
+    }
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?,
@@ -57,10 +65,23 @@ class AlbumsFragment : Fragment() {
         binding.toolbar.setupWithNavController(navController, appBarConfig)
 
         binding.fabNewAlbum.setOnClickListener { showCreateAlbumDialog() }
+        binding.fabImportFolder.setOnClickListener {
+            folderPickerLauncher.launch(null)
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                viewModel.albums.collect { adapter.submitList(it) }
+                launch {
+                    viewModel.albums.collect { adapter.submitList(it) }
+                }
+                launch {
+                    viewModel.importStatus.collect { status ->
+                        status?.let {
+                            Toast.makeText(requireContext(), it, Toast.LENGTH_LONG).show()
+                            viewModel.clearImportStatus()
+                        }
+                    }
+                }
             }
         }
     }

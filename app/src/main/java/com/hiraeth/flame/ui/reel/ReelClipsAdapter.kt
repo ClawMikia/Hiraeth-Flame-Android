@@ -11,7 +11,7 @@ import com.hiraeth.flame.di.AppContainer
 
 class ReelClipsAdapter(
     private val container: AppContainer,
-    private val selectedIds: () -> Set<Long>,
+    private val selectedIds: () -> Collection<Long>,
     private val onToggle: (Long) -> Unit,
     private val onOpen: (Long) -> Unit,
 ) : RecyclerView.Adapter<ReelClipsAdapter.VH>() {
@@ -34,7 +34,14 @@ class ReelClipsAdapter(
         holder.binding.thumbnail.load(file) { crossfade(true) }
         holder.binding.title.text = item.displayName
         holder.binding.subtitle.text = if (item.isVideo) "Video · ${item.sizeBytes / 1024} KB" else "Photo · ${item.sizeBytes / 1024} KB"
-        val sel = selectedIds().contains(item.id)
+        
+        val selectedList = selectedIds().toList()
+        val index = selectedList.indexOf(item.id)
+        val sel = index != -1
+        
+        holder.binding.selectionIndex.visibility = if (sel) android.view.View.VISIBLE else android.view.View.GONE
+        holder.binding.selectionIndex.text = (index + 1).toString()
+
         val card = holder.binding.root as MaterialCardView
         val ctx = holder.itemView.context
         val d = ctx.resources.displayMetrics.density

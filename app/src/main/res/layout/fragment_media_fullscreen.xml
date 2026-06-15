@@ -14,6 +14,36 @@
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Image specific controls -->
+    <LinearLayout
+        android:id="@+id/image_controls"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_margin="16dp"
+        android:orientation="horizontal"
+        android:visibility="gone"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent">
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_rotate"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="Rotate"
+            app:icon="@drawable/ic_rotate_right"
+            app:iconTint="@color/neon_cyan" />
+
+        <com.google.android.material.button.MaterialButton
+            android:id="@+id/btn_orientation"
+            style="@style/Widget.Material3.Button.IconButton"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="Toggle Orientation"
+            app:icon="@drawable/ic_fullscreen"
+            app:iconTint="@color/neon_cyan" />
+    </LinearLayout>
+
     <!-- Close Button -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btn_close_fullscreen"

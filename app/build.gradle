@@ -58,6 +58,7 @@ dependencies {
     implementation libs.androidx.viewpager2
     implementation libs.androidx.coordinatorlayout
     implementation libs.androidx.recyclerview
+    implementation libs.androidx.documentfile
     implementation libs.photoview
 
     implementation libs.androidx.lifecycle.runtime.ktx

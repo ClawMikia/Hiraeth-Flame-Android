@@ -30,18 +30,37 @@
         android:paddingBottom="100dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <com.google.android.material.floatingactionbutton.FloatingActionButton
-        android:id="@+id/fab_new_album"
+    <LinearLayout
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
         android:layout_margin="@dimen/fab_margin"
-        android:contentDescription="New album"
-        android:src="@android:drawable/ic_input_add"
-        app:backgroundTint="@color/bg_card"
-        app:borderWidth="0dp"
-        app:elevation="4dp"
-        app:maxImageSize="28dp"
-        app:tint="@color/neon_cyan" />
+        android:orientation="horizontal">
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_import_folder"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="12dp"
+            android:contentDescription="Import Folder"
+            android:src="@android:drawable/ic_menu_save"
+            app:backgroundTint="@color/bg_card"
+            app:borderWidth="0dp"
+            app:elevation="4dp"
+            app:maxImageSize="28dp"
+            app:tint="@color/neon_violet" />
+
+        <com.google.android.material.floatingactionbutton.FloatingActionButton
+            android:id="@+id/fab_new_album"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:contentDescription="New album"
+            android:src="@android:drawable/ic_input_add"
+            app:backgroundTint="@color/bg_card"
+            app:borderWidth="0dp"
+            app:elevation="4dp"
+            app:maxImageSize="28dp"
+            app:tint="@color/neon_cyan" />
+    </LinearLayout>
 
 </androidx.coordinatorlayout.widget.CoordinatorLayout>

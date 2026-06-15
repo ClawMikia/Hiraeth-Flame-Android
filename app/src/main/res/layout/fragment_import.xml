@@ -53,12 +53,24 @@
                 app:strokeColor="@color/border_subtle"
                 app:strokeWidth="1dp">
 
-                <ImageView
-                    android:id="@+id/preview"
+                <FrameLayout
                     android:layout_width="match_parent"
-                    android:layout_height="match_parent"
-                    android:contentDescription="@null"
-                    android:scaleType="fitCenter" />
+                    android:layout_height="match_parent">
+
+                    <ImageView
+                        android:id="@+id/preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:contentDescription="@null"
+                        android:scaleType="fitCenter" />
+
+                    <androidx.media3.ui.PlayerView
+                        android:id="@+id/video_preview"
+                        android:layout_width="match_parent"
+                        android:layout_height="match_parent"
+                        android:visibility="gone"
+                        app:use_controller="false" />
+                </FrameLayout>
             </com.google.android.material.card.MaterialCardView>
 
             <!-- Title input -->
@@ -104,6 +116,33 @@
                 android:layout_marginTop="10dp"
                 android:textColor="@color/neon_cyan"
                 android:textSize="13sp" />
+
+            <!-- Album option -->
+            <com.google.android.material.switchmaterial.SwitchMaterial
+                android:id="@+id/switch_create_album"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="14dp"
+                android:text="Create new album for these items"
+                android:textColor="@color/text_primary" />
+
+            <com.google.android.material.textfield.TextInputLayout
+                android:id="@+id/album_name_layout"
+                style="@style/TextInput.Neon"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="4dp"
+                android:hint="Album Name"
+                android:visibility="gone">
+
+                <com.google.android.material.textfield.TextInputEditText
+                    android:id="@+id/album_name_input"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:inputType="text"
+                    android:maxLines="1"
+                    android:textColor="@color/text_primary" />
+            </com.google.android.material.textfield.TextInputLayout>
 
             <!-- Save button -->
             <com.google.android.material.button.MaterialButton
