@@ -142,16 +142,17 @@
     </com.google.android.material.appbar.AppBarLayout>
 
     <!-- Media grid/list -->
+
+    <!-- Import FAB -->
     <androidx.recyclerview.widget.RecyclerView
         android:id="@+id/recycler"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:clipToPadding="false"
-        android:paddingBottom="88dp"
         android:paddingTop="8dp"
+        android:paddingBottom="88dp"
         app:layout_behavior="@string/appbar_scrolling_view_behavior" />
 
-    <!-- Import FAB -->
     <com.google.android.material.floatingactionbutton.FloatingActionButton
         android:id="@+id/fab_import"
         android:layout_width="wrap_content"

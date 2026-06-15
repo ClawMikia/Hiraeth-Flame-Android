@@ -21,4 +21,9 @@
         android:icon="@android:drawable/ic_input_add"
         android:title="@string/action_combine"
         app:showAsAction="always" />
+    <item
+        android:id="@+id/action_delete_multiple"
+        android:icon="@android:drawable/ic_menu_delete"
+        android:title="@string/action_delete_selected"
+        app:showAsAction="always" />
 </menu>

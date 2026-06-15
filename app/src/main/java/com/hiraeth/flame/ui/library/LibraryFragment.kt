@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.os.Bundle
 import android.text.Editable
-import android.text.InputType
 import android.text.TextWatcher
 import android.view.LayoutInflater
 import android.view.View
@@ -34,10 +33,8 @@ import com.hiraeth.flame.domain.LibraryViewMode
 import com.hiraeth.flame.domain.MediaTypeFilter
 import com.hiraeth.flame.ui.util.AppPermissions
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
-import java.util.Collections
 
 class LibraryFragment : Fragment() {
 
@@ -47,33 +44,12 @@ class LibraryFragment : Fragment() {
     private val container get() = (requireActivity().application as com.hiraeth.flame.HiraethApplication).container
 
     private val viewModel: LibraryViewModel by viewModels {
-        LibraryViewModel.factory(container.mediaRepository)
+        LibraryViewModel.factory(container.mediaRepository, container.albumRepository)
     }
 
     private lateinit var adapter: MediaLibraryAdapter
 
     private var targetCombineCount = 0
-
-    private val quickImportLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        if (uris.isNotEmpty()) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                Toast.makeText(requireContext(), "Importing ${uris.size} items...", Toast.LENGTH_SHORT).show()
-                withContext(Dispatchers.IO) {
-                    uris.forEach { uri ->
-                        try {
-                            val type = requireContext().contentResolver.getType(uri).orEmpty()
-                            val isVideo = type.startsWith("video/")
-                            val name = uri.lastPathSegment ?: "Imported Media"
-                            container.mediaRepository.importFromUri(uri, name, "Imported from device", isVideo)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-                Toast.makeText(requireContext(), "Import complete!", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLibraryBinding.inflate(inflater, container, false)
@@ -90,6 +66,9 @@ class LibraryFragment : Fragment() {
                     putLong("albumId", -1L)
                 }
                 findNavController().navigate(R.id.action_library_to_detail, b)
+            },
+            onHeaderClick = { albumId ->
+                viewModel.toggleAlbumExpanded(albumId)
             }
         )
         binding.recycler.adapter = adapter
@@ -146,11 +125,7 @@ class LibraryFragment : Fragment() {
         binding.toolbar.setOnMenuItemClickListener { item ->
             when (item.itemId) {
                 R.id.action_quick_import -> {
-                    if (hasAllPermissions()) {
-                        quickImportLauncher.launch("*/*")
-                    } else {
-                        (activity as? com.hiraeth.flame.MainActivity)?.requestAppPermissions()
-                    }
+                    Toast.makeText(requireContext(), "Use FAB or Album import", Toast.LENGTH_SHORT).show()
                     true
                 }
                 R.id.action_toggle_view -> {
@@ -163,6 +138,20 @@ class LibraryFragment : Fragment() {
                 }
                 R.id.action_combine -> {
                     showCombineDialog()
+                    true
+                }
+                R.id.action_delete_multiple -> {
+                    if (adapter.isSelectionMode()) {
+                        val selected = adapter.getSelectedItems()
+                        if (selected.isNotEmpty()) {
+                            showMultiDeleteConfirmation(selected)
+                        } else {
+                            adapter.exitSelectionMode()
+                        }
+                    } else {
+                        adapter.enterSelectionMode { }
+                        Toast.makeText(requireContext(), "Select items then click Delete again", Toast.LENGTH_SHORT).show()
+                    }
                     true
                 }
                 else -> false
@@ -189,6 +178,21 @@ class LibraryFragment : Fragment() {
                 updatePermissionUi()
             }
         }
+    }
+
+    private fun showMultiDeleteConfirmation(items: List<com.hiraeth.flame.data.db.MediaEntity>) {
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setTitle("Delete ${items.size} items?")
+            .setMessage("Are you sure you want to permanently delete these items?")
+            .setPositiveButton("Delete") { _, _ ->
+                viewLifecycleOwner.lifecycleScope.launch {
+                    items.forEach { viewModel.delete(it) }
+                    adapter.exitSelectionMode()
+                    Toast.makeText(requireContext(), "Items deleted", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showCombineDialog() {
@@ -254,7 +258,7 @@ class LibraryFragment : Fragment() {
                     
                     val result = Bitmap.createBitmap(totalWidth, totalHeight, Bitmap.Config.ARGB_8888)
                     val canvas = Canvas(result)
-                    canvas.drawColor(android.graphics.Color.BLACK) // Background for gaps
+                    canvas.drawColor(android.graphics.Color.BLACK)
 
                     for (i in bitmaps.indices) {
                         val r = i / cols
@@ -264,7 +268,6 @@ class LibraryFragment : Fragment() {
                         val left = c * cellWidth.toFloat()
                         val top = r * cellHeight.toFloat()
                         
-                        // Calculate Center Crop matrix
                         val matrix = android.graphics.Matrix()
                         val scale: Float
                         var dx = 0f
@@ -281,7 +284,6 @@ class LibraryFragment : Fragment() {
                         matrix.setScale(scale, scale)
                         matrix.postTranslate(left + dx, top + dy)
                         
-                        // Clip to cell
                         canvas.save()
                         canvas.clipRect(left, top, left + cellWidth, top + cellHeight)
                         canvas.drawBitmap(b, matrix, null)
@@ -307,10 +309,16 @@ class LibraryFragment : Fragment() {
 
     private fun applyLayoutManager() {
         val grid = viewModel.viewModeState.value == LibraryViewMode.Grid
-        binding.recycler.layoutManager = if (grid) {
-            GridLayoutManager(requireContext(), 3)
+        if (grid) {
+            val gm = GridLayoutManager(requireContext(), 3)
+            gm.spanSizeLookup = object : GridLayoutManager.SpanSizeLookup() {
+                override fun getSpanSize(position: Int): Int {
+                    return if (adapter.getItemViewType(position) == 0) 3 else 1 // 0 is TYPE_HEADER
+                }
+            }
+            binding.recycler.layoutManager = gm
         } else {
-            LinearLayoutManager(requireContext())
+            binding.recycler.layoutManager = LinearLayoutManager(requireContext())
         }
     }
 

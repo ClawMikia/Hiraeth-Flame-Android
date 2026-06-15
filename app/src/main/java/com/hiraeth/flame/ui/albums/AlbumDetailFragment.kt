@@ -18,10 +18,9 @@ import androidx.recyclerview.widget.GridLayoutManager
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
 import com.hiraeth.flame.R
 import com.hiraeth.flame.databinding.FragmentAlbumDetailBinding
+import com.hiraeth.flame.databinding.DialogManageMediaBinding
 import com.hiraeth.flame.ui.library.MediaLibraryAdapter
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 
 class AlbumDetailFragment : Fragment() {
 
@@ -49,28 +48,6 @@ class AlbumDetailFragment : Fragment() {
         }
     }
 
-    private val addFromDeviceLauncher = registerForActivityResult(ActivityResultContracts.GetMultipleContents()) { uris ->
-        if (uris.isNotEmpty()) {
-            viewLifecycleOwner.lifecycleScope.launch {
-                Toast.makeText(requireContext(), "Adding ${uris.size} items to album...", Toast.LENGTH_SHORT).show()
-                withContext(Dispatchers.IO) {
-                    uris.forEach { uri ->
-                        try {
-                            val type = requireContext().contentResolver.getType(uri).orEmpty()
-                            val isVideo = type.startsWith("video/")
-                            val name = uri.lastPathSegment ?: "Imported Media"
-                            val mediaId = container.mediaRepository.importFromUri(uri, name, "Added to album from device", isVideo)
-                            container.albumRepository.addToAlbum(albumId, mediaId)
-                        } catch (e: Exception) {
-                            e.printStackTrace()
-                        }
-                    }
-                }
-                Toast.makeText(requireContext(), "Import to album complete!", Toast.LENGTH_SHORT).show()
-            }
-        }
-    }
-
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentAlbumDetailBinding.inflate(inflater, container, false)
         return binding.root
@@ -79,13 +56,13 @@ class AlbumDetailFragment : Fragment() {
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         binding.toolbar.setupWithNavController(findNavController())
 
-        adapter = MediaLibraryAdapter(container, gridMode = true) { id ->
+        adapter = MediaLibraryAdapter(container, gridMode = true, onItemClick = { id ->
             val b = Bundle().apply { 
                 putLong("mediaId", id)
                 putLong("albumId", albumId)
             }
             findNavController().navigate(R.id.action_albumDetail_to_detail, b)
-        }
+        })
 
         binding.recyclerMedia.layoutManager = GridLayoutManager(requireContext(), 3)
         binding.recyclerMedia.adapter = adapter
@@ -97,7 +74,7 @@ class AlbumDetailFragment : Fragment() {
             createZipLauncher.launch("${albumName.replace(" ", "_")}.zip")
         }
         binding.btnAddDevice.setOnClickListener {
-            addFromDeviceLauncher.launch("*/*")
+            showAddFromLibraryDialog()
         }
         binding.btnDeleteAlbum.setOnClickListener {
             showDeleteAlbumConfirmation()
@@ -110,10 +87,13 @@ class AlbumDetailFragment : Fragment() {
                         if (awm == null) return@collect
                         binding.albumTitle.text = awm.album.name
                         binding.albumDescription.text = awm.album.description
+                        binding.toolbar.title = awm.album.name
                     }
                 }
                 launch {
-                    viewModel.filteredMedia.collect { adapter.submitList(it) }
+                    viewModel.filteredMedia.collect { 
+                        adapter.submitList(it.map { com.hiraeth.flame.ui.library.LibraryListItem.Media(it) }) 
+                    }
                 }
                 launch {
                     viewModel.isExporting.collect { exporting ->
@@ -123,8 +103,46 @@ class AlbumDetailFragment : Fragment() {
                         }
                     }
                 }
+                launch {
+                    viewModel.availableMedia.collect { /* Keep active */ }
+                }
             }
         }
+    }
+
+    private fun showAddFromLibraryDialog() {
+        val allMedia = viewModel.availableMedia.value
+        val albumData = viewModel.albumWithMedia.value ?: return
+        
+        if (allMedia.isEmpty()) {
+            Toast.makeText(requireContext(), "No media in library to manage.", Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        val currentMediaIds = albumData.media.map { it.id }.toSet()
+        val dialogBinding = DialogManageMediaBinding.inflate(layoutInflater)
+        val selectionAdapter = MediaSelectionAdapter(container, currentMediaIds)
+        
+        dialogBinding.recyclerSelection.apply {
+            layoutManager = GridLayoutManager(requireContext(), 3)
+            adapter = selectionAdapter
+        }
+        selectionAdapter.submitList(allMedia)
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setView(dialogBinding.root)
+            .setPositiveButton("Update") { _, _ ->
+                val finalSelectedIds = selectionAdapter.getSelectedIds()
+                val toAdd = finalSelectedIds.filter { it !in currentMediaIds }
+                val toRemove = currentMediaIds.filter { it !in finalSelectedIds }
+                
+                if (toAdd.isNotEmpty() || toRemove.isNotEmpty()) {
+                    viewModel.updateAlbumMedia(toAdd, toRemove)
+                    Toast.makeText(requireContext(), "Album updated", Toast.LENGTH_SHORT).show()
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showEditAlbumDialog() {

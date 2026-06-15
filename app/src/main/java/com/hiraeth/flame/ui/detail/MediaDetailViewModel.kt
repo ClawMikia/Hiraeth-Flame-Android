@@ -69,17 +69,37 @@ class MediaDetailViewModel(
 
                 repository.getById(idToDelete)?.let { repository.delete(it) }
 
-                if (ids.size > 1) {
-                    if (currentIndex < ids.size - 1) {
-                        _currentId.value = ids[currentIndex + 1]
-                    } else {
-                        _currentId.value = ids[currentIndex - 1]
-                    }
-                } else {
-                    onDone()
-                }
+                handleNavigationAfterRemoval(ids, currentIndex, onDone)
             } catch (e: Exception) {
             }
+        }
+    }
+
+    fun removeFromCurrentAlbum(onDone: () -> Unit) {
+        if (albumId == -1L) return
+        viewModelScope.launch {
+            try {
+                val idToRemove = _currentId.value
+                val ids = navigationIds.value
+                val currentIndex = ids.indexOf(idToRemove)
+
+                albumRepository.removeFromAlbum(albumId, idToRemove)
+
+                handleNavigationAfterRemoval(ids, currentIndex, onDone)
+            } catch (e: Exception) {
+            }
+        }
+    }
+
+    private fun handleNavigationAfterRemoval(ids: List<Long>, currentIndex: Int, onDone: () -> Unit) {
+        if (ids.size > 1) {
+            if (currentIndex < ids.size - 1) {
+                _currentId.value = ids[currentIndex + 1]
+            } else {
+                _currentId.value = ids[currentIndex - 1]
+            }
+        } else {
+            onDone()
         }
     }
 

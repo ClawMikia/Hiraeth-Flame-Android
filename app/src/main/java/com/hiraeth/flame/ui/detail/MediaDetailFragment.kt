@@ -54,7 +54,6 @@ class MediaDetailFragment : Fragment() {
         )
         binding.toolbar.setupWithNavController(navController, appBarConfig)
 
-        // Setup ViewPager2 with smooth "soft" transitions
         pagerAdapter = MediaPagerAdapter(container)
         binding.viewPager.adapter = pagerAdapter
         
@@ -68,15 +67,13 @@ class MediaDetailFragment : Fragment() {
         }
         binding.viewPager.setPageTransformer(transformer)
         
-        // Prevent NestedScrollView from intercepting horizontal swipes when touching the media area
         (binding.viewPager.getChildAt(0) as? androidx.recyclerview.widget.RecyclerView)?.let { rv ->
-            rv.setOnTouchListener { v, _ ->
-                v.parent.requestDisallowInterceptTouchEvent(true)
+            rv.setOnTouchListener { _, _ ->
+                binding.nestedScrollView.requestDisallowInterceptTouchEvent(true)
                 false
             }
         }
         
-        // Sync Pager -> ViewModel
         binding.viewPager.registerOnPageChangeCallback(
             object : ViewPager2.OnPageChangeCallback() {
                 override fun onPageSelected(position: Int) {
@@ -117,7 +114,11 @@ class MediaDetailFragment : Fragment() {
         }
 
         binding.btnDelete.setOnClickListener {
-            showDeleteConfirmation()
+            if (albumId != -1L) {
+                showRemoveFromAlbumConfirmation()
+            } else {
+                showDeleteConfirmation()
+            }
         }
 
         binding.btnPrev.setOnClickListener { 
@@ -196,6 +197,17 @@ class MediaDetailFragment : Fragment() {
             .show()
     }
 
+    private fun showRemoveFromAlbumConfirmation() {
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setTitle("Remove from Album?")
+            .setMessage("This item will be removed from this album but will remain in your library.")
+            .setNegativeButton(R.string.action_cancel, null)
+            .setPositiveButton("Remove") { _, _ ->
+                viewModel.removeFromCurrentAlbum { findNavController().popBackStack() }
+            }
+            .show()
+    }
+
     private fun showAlbumPicker() {
         val names = cachedAlbums.map { it.album.name }.toTypedArray()
         if (names.isEmpty()) {
@@ -204,7 +216,7 @@ class MediaDetailFragment : Fragment() {
         }
         MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
             .setTitle("Add to Album")
-            .setItems(names) { _, which ->
+            .setItems(names) { _, which, ->
                 viewModel.addToAlbum(cachedAlbums[which].album.id)
                 Toast.makeText(requireContext(), "Added to ${names[which]}", Toast.LENGTH_SHORT).show()
             }

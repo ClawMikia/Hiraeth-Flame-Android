@@ -44,8 +44,24 @@ class AlbumDetailViewModel(
         else media.filter { it.displayName.contains(query, ignoreCase = true) || it.description.contains(query, ignoreCase = true) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val availableMedia: StateFlow<List<MediaEntity>> = mediaRepository.observeAll()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     fun setFilter(query: String) {
         _filter.value = query
+    }
+
+    fun addMediaToAlbum(mediaId: Long) {
+        viewModelScope.launch {
+            albumRepository.addToAlbum(albumId, mediaId)
+        }
+    }
+
+    fun updateAlbumMedia(toAdd: List<Long>, toRemove: List<Long>) {
+        viewModelScope.launch {
+            toAdd.forEach { albumRepository.addToAlbum(albumId, it) }
+            toRemove.forEach { albumRepository.removeFromAlbum(albumId, it) }
+        }
     }
 
     fun updateAlbum(name: String, description: String) {

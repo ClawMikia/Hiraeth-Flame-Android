@@ -20,6 +20,7 @@
     <string name="action_add">Add</string>
     <string name="action_quick_import">Quick Import</string>
     <string name="action_combine">Combine Images</string>
+    <string name="action_delete_selected">Delete Selected</string>
     <string name="files_selected_count">%1$d files selected</string>
     <string name="action_edit_image">Edit Image</string>
     <string name="brightness">Brightness</string>
@@ -29,4 +30,5 @@
     <string name="image_editor">Image Editor</string>
     <string name="delete_album_title">Delete Album?</string>
     <string name="delete_album_message">Are you sure you want to delete this album? The media inside will not be deleted from your library.</string>
+    <string name="manage_album_media_title">Select media for this album</string>
 </resources>
