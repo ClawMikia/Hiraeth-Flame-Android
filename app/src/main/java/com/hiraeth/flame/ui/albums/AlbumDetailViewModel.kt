@@ -54,6 +54,13 @@ class AlbumDetailViewModel(
         }
     }
 
+    fun deleteAlbum(onDone: () -> Unit) {
+        viewModelScope.launch {
+            albumRepository.deleteAlbum(albumId)
+            onDone()
+        }
+    }
+
     fun exportToZip(context: Context, destUri: Uri, onDone: (Boolean) -> Unit) {
         val awm = albumWithMedia.value ?: return
         viewModelScope.launch {

@@ -99,6 +99,9 @@ class AlbumDetailFragment : Fragment() {
         binding.btnAddDevice.setOnClickListener {
             addFromDeviceLauncher.launch("*/*")
         }
+        binding.btnDeleteAlbum.setOnClickListener {
+            showDeleteAlbumConfirmation()
+        }
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -199,6 +202,19 @@ class AlbumDetailFragment : Fragment() {
         }
 
         dialog.show()
+    }
+
+    private fun showDeleteAlbumConfirmation() {
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setTitle(R.string.delete_album_title)
+            .setMessage(R.string.delete_album_message)
+            .setPositiveButton(R.string.action_delete) { _, _ ->
+                viewModel.deleteAlbum {
+                    findNavController().popBackStack()
+                }
+            }
+            .setNegativeButton(R.string.action_cancel, null)
+            .show()
     }
 
     private fun findFirstTextView(viewGroup: ViewGroup): TextView? {
