@@ -5,6 +5,10 @@ import android.graphics.*
 import android.util.AttributeSet
 import android.view.MotionEvent
 import android.view.View
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.pow
+import kotlin.math.sqrt
 
 class CropOverlayView @JvmOverloads constructor(
     context: Context, attrs: AttributeSet? = null, defStyleAttr: Int = 0
@@ -81,20 +85,20 @@ class CropOverlayView @JvmOverloads constructor(
                         cropRect.offset(dx, dy)
                     }
                     TouchMode.TOP_LEFT -> {
-                        cropRect.left = Math.min(cropRect.right - handleSize * 2, cropRect.left + dx)
-                        cropRect.top = Math.min(cropRect.bottom - handleSize * 2, cropRect.top + dy)
+                        cropRect.left = min(cropRect.right - handleSize * 2, cropRect.left + dx)
+                        cropRect.top = min(cropRect.bottom - handleSize * 2, cropRect.top + dy)
                     }
                     TouchMode.TOP_RIGHT -> {
-                        cropRect.right = Math.max(cropRect.left + handleSize * 2, cropRect.right + dx)
-                        cropRect.top = Math.min(cropRect.bottom - handleSize * 2, cropRect.top + dy)
+                        cropRect.right = max(cropRect.left + handleSize * 2, cropRect.right + dx)
+                        cropRect.top = min(cropRect.bottom - handleSize * 2, cropRect.top + dy)
                     }
                     TouchMode.BOTTOM_LEFT -> {
-                        cropRect.left = Math.min(cropRect.right - handleSize * 2, cropRect.left + dx)
-                        cropRect.bottom = Math.max(cropRect.top + handleSize * 2, cropRect.bottom + dy)
+                        cropRect.left = min(cropRect.right - handleSize * 2, cropRect.left + dx)
+                        cropRect.bottom = max(cropRect.top + handleSize * 2, cropRect.bottom + dy)
                     }
                     TouchMode.BOTTOM_RIGHT -> {
-                        cropRect.right = Math.max(cropRect.left + handleSize * 2, cropRect.right + dx)
-                        cropRect.bottom = Math.max(cropRect.top + handleSize * 2, cropRect.bottom + dy)
+                        cropRect.right = max(cropRect.left + handleSize * 2, cropRect.right + dx)
+                        cropRect.bottom = max(cropRect.top + handleSize * 2, cropRect.bottom + dy)
                     }
                     TouchMode.NONE -> {}
                 }
@@ -128,7 +132,7 @@ class CropOverlayView @JvmOverloads constructor(
     }
 
     private fun isNear(x1: Float, y1: Float, x2: Float, y2: Float): Boolean {
-        val dist = Math.sqrt(Math.pow((x1 - x2).toDouble(), 2.0) + Math.pow((y1 - y2).toDouble(), 2.0))
+        val dist = sqrt((x1 - x2).toDouble().pow(2.0) + (y1 - y2).toDouble().pow(2.0))
         return dist < handleSize * 2
     }
 }

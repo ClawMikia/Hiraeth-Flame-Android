@@ -14,6 +14,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.lifecycleScope
 import androidx.lifecycle.repeatOnLifecycle
 import androidx.media3.common.MediaItem
+import androidx.media3.common.Player
 import androidx.media3.exoplayer.ExoPlayer
 import androidx.navigation.fragment.findNavController
 import androidx.navigation.ui.setupWithNavController
@@ -176,7 +177,7 @@ class ImportFragment : Fragment() {
             player.setMediaItem(MediaItem.fromUri(uri))
             player.prepare()
             player.playWhenReady = true
-            player.repeatMode = ExoPlayer.REPEAT_MODE_ALL
+            player.repeatMode = Player.REPEAT_MODE_ALL
             binding.videoPreview.player = player
         }
     }

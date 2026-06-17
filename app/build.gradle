@@ -51,10 +51,8 @@ kotlin {
 
 dependencies {
     implementation libs.androidx.core.ktx
-    implementation libs.androidx.core.splashscreen
     implementation libs.androidx.appcompat
     implementation libs.google.material
-    implementation libs.androidx.constraintlayout
     implementation libs.androidx.viewpager2
     implementation libs.androidx.coordinatorlayout
     implementation libs.androidx.recyclerview
@@ -63,7 +61,6 @@ dependencies {
 
     implementation libs.androidx.lifecycle.runtime.ktx
     implementation libs.androidx.lifecycle.viewmodel.ktx
-    implementation libs.androidx.lifecycle.livedata.ktx
 
     implementation libs.androidx.activity.ktx
     implementation libs.androidx.fragment.ktx

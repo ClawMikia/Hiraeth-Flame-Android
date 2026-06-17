@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.os.Bundle
+import android.util.Log
 import android.text.Editable
 import android.text.TextWatcher
 import android.view.LayoutInflater
@@ -35,6 +36,8 @@ import com.hiraeth.flame.ui.util.AppPermissions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 class LibraryFragment : Fragment() {
 
@@ -247,8 +250,8 @@ class LibraryFragment : Fragment() {
                     if (bitmaps.isEmpty()) return@withContext null
 
                     val n = bitmaps.size
-                    val cols = Math.ceil(Math.sqrt(n.toDouble())).toInt()
-                    val rows = Math.ceil(n.toDouble() / cols).toInt()
+                    val cols = ceil(sqrt(n.toDouble())).toInt()
+                    val rows = ceil(n.toDouble() / cols).toInt()
 
                     val cellWidth = bitmaps.maxOf { it.width }
                     val cellHeight = bitmaps.maxOf { it.height }
@@ -301,7 +304,7 @@ class LibraryFragment : Fragment() {
                     Toast.makeText(requireContext(), "Image combined and saved!", Toast.LENGTH_SHORT).show()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e("LibraryFragment", "Failed to combine images", e)
                 Toast.makeText(requireContext(), "Failed to combine images", Toast.LENGTH_SHORT).show()
             }
         }

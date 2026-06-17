@@ -23,6 +23,7 @@ import com.hiraeth.flame.databinding.FragmentMediaDetailBinding
 import com.hiraeth.flame.di.AppContainer
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class MediaDetailFragment : Fragment() {
 
@@ -60,7 +61,7 @@ class MediaDetailFragment : Fragment() {
         val transformer = CompositePageTransformer().apply {
             addTransformer(MarginPageTransformer(40))
             addTransformer { page, position ->
-                val r = 1 - Math.abs(position)
+                val r = 1 - abs(position)
                 page.scaleY = 0.90f + r * 0.10f
                 page.alpha = 0.5f + r * 0.5f
             }

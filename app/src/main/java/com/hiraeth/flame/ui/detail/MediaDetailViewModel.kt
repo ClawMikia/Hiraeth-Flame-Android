@@ -3,6 +3,7 @@ package com.hiraeth.flame.ui.detail
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
+import android.util.Log
 import com.hiraeth.flame.data.db.AlbumWithMedia
 import com.hiraeth.flame.data.db.MediaEntity
 import com.hiraeth.flame.data.repository.AlbumRepository
@@ -56,6 +57,7 @@ class MediaDetailViewModel(
                     )
                 )
             } catch (e: Exception) {
+                Log.e("MediaDetailVM", "Failed to save metadata", e)
             }
         }
     }
@@ -71,6 +73,7 @@ class MediaDetailViewModel(
 
                 handleNavigationAfterRemoval(ids, currentIndex, onDone)
             } catch (e: Exception) {
+                Log.e("MediaDetailVM", "Failed to delete media", e)
             }
         }
     }
@@ -87,6 +90,7 @@ class MediaDetailViewModel(
 
                 handleNavigationAfterRemoval(ids, currentIndex, onDone)
             } catch (e: Exception) {
+                Log.e("MediaDetailVM", "Failed to remove from album", e)
             }
         }
     }
@@ -108,6 +112,7 @@ class MediaDetailViewModel(
             try {
                 albumRepository.addToAlbum(targetAlbumId, _currentId.value)
             } catch (e: Exception) {
+                Log.e("MediaDetailVM", "Failed to add to album", e)
             }
         }
     }

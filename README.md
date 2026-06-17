@@ -75,29 +75,30 @@ Hiraeth Flame is a comprehensive media management app built with modern Android 
 ### Key Libraries
 - **CameraX**: High-level camera API for capture and preview.
 - **Media3 (ExoPlayer)**: Modern media playback and editing framework.
-- **Coil**: Fast and lightweight image loading and caching.
+- **Coil**: Fast and lightweight image loading and caching (with video frame decoder support).
+- **PhotoView**: Pinch-to-zoom image view for fullscreen media browsing.
 - **Coroutines & Flow**: Reactive asynchronous programming and state management.
 - **RecyclerView & ViewPager2**: Efficient handling of lists, grids, and swipable media pages.
 
 ## 📋 Requirements
 
-- **Android Studio**: Arctic Fox or later
+- **Android Studio**: Ladybug or later (Kotlin 2.0 / AGP 8.x requires a recent version)
 - **Android SDK**: API level 24 (Android 7.0) or higher
 - **Java**: JDK 17 or later
-- **Kotlin**: 1.9.0 or later
+- **Kotlin**: 2.0 or later
 
 ## 🚀 Getting Started
 
 ### 1. Clone the Repository
 ```bash
 git clone <repository-url>
-cd HiraethFlame
+cd Hiraeth-Flame
 ```
 
 ### 2. Open in Android Studio
 1. Open Android Studio
 2. Select "Open an existing Android Studio project"
-3. Navigate to the cloned `HiraethFlame` directory
+3. Navigate to the cloned `Hiraeth-Flame` directory
 4. Wait for Gradle sync to complete
 
 ### 3. Build and Run
@@ -119,8 +120,8 @@ app/src/main/java/com/hiraeth/flame/
 ├── SplashActivity.kt            # App entry & branding
 ├── HiraethApplication.kt        # Application class & DI container
 ├── data/                       # Data layer
-│   ├── model/                  # Data entities (Media, Album)
-│   ├── local/                  # Room Database & DAOs
+│   ├── db/                     # Room entities, DAOs, and database
+│   ├── local/                  # File-based media storage
 │   └── repository/             # Media and Album repositories
 ├── di/                         # Dependency injection (AppContainer)
 ├── domain/                     # Business logic & use cases

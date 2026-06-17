@@ -2,6 +2,7 @@ package com.hiraeth.flame.ui.albums
 
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -100,7 +101,7 @@ class AlbumDetailViewModel(
                     }
                     true
                 } catch (e: Exception) {
-                    e.printStackTrace()
+                    Log.e("AlbumDetailVM", "Zip export failed", e)
                     false
                 }
             }

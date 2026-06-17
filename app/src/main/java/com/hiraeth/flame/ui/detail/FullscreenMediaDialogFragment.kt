@@ -20,6 +20,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.hiraeth.flame.databinding.FragmentMediaFullscreenBinding
 import com.hiraeth.flame.di.AppContainer
 import kotlinx.coroutines.launch
+import kotlin.math.abs
 
 class FullscreenMediaDialogFragment : DialogFragment() {
 
@@ -77,7 +78,7 @@ class FullscreenMediaDialogFragment : DialogFragment() {
         val transformer = CompositePageTransformer().apply {
             addTransformer(MarginPageTransformer(40))
             addTransformer { page, position ->
-                val r = 1 - Math.abs(position)
+                val r = 1 - abs(position)
                 page.scaleY = 0.92f + r * 0.08f
                 page.alpha = 0.6f + r * 0.4f
             }

@@ -16,6 +16,8 @@ import com.hiraeth.flame.HiraethApplication
 import com.hiraeth.flame.R
 import com.hiraeth.flame.databinding.FragmentImageEditorBinding
 import kotlinx.coroutines.launch
+import kotlin.math.max
+import kotlin.math.min
 
 class ImageEditorFragment : Fragment() {
 
@@ -122,7 +124,7 @@ class ImageEditorFragment : Fragment() {
         val bitmapWidth = rotated.width.toFloat()
         val bitmapHeight = rotated.height.toFloat()
         
-        val scale = Math.min(viewWidth / bitmapWidth, viewHeight / bitmapHeight)
+        val scale = min(viewWidth / bitmapWidth, viewHeight / bitmapHeight)
         val dx = (viewWidth - bitmapWidth * scale) / 2f
         val dy = (viewHeight - bitmapHeight * scale) / 2f
         
@@ -131,10 +133,10 @@ class ImageEditorFragment : Fragment() {
         val right = (rect.right - dx) / scale
         val bottom = (rect.bottom - dy) / scale
         
-        val cropX = Math.max(0, left.toInt())
-        val cropY = Math.max(0, top.toInt())
-        val cropW = Math.min(rotated.width - cropX, (right - left).toInt())
-        val cropH = Math.min(rotated.height - cropY, (bottom - top).toInt())
+        val cropX = max(0, left.toInt())
+        val cropY = max(0, top.toInt())
+        val cropW = min(rotated.width - cropX, (right - left).toInt())
+        val cropH = min(rotated.height - cropY, (bottom - top).toInt())
         
         return if (cropW > 0 && cropH > 0) {
             Bitmap.createBitmap(rotated, cropX, cropY, cropW, cropH)

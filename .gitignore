@@ -14,6 +14,13 @@
 *.apk
 *.ap_
 *.aab
+*.dex
+
+# Compiled class files
+*.class
+
+# Kotlin
+.kotlin/
 
 # Android Studio / IntelliJ
 *.ipr
@@ -25,6 +32,9 @@ out/
 .idea/workspace.xml
 .idea/navEditor.xml
 .idea/assetWizardSettings.xml
+.idea/dataSources/
+.idea/datasources/
+.idea/datasources.local.xml
 
 # Log Files
 *.log
@@ -32,7 +42,7 @@ out/
 # NDK
 # (Already covered above)
 
-# keystore
+# Keystore
 *.jks
 *.keystore
 
@@ -44,3 +54,8 @@ lint/
 
 # AS Profile
 *.hprof
+
+# OS / Editor temp files
+Thumbs.db
+*.swp
+*~
