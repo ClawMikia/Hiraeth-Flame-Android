@@ -47,6 +47,9 @@ class LibraryViewModel(
 
     val viewModeState: StateFlow<LibraryViewMode> = viewMode
 
+    val albums: StateFlow<List<AlbumWithMedia>> = albumRepository.observeAlbums()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     val items: StateFlow<List<LibraryListItem>> = combine(
         combine(
             repository.observeAll(),
@@ -147,6 +150,25 @@ class LibraryViewModel(
 
     fun delete(entity: MediaEntity) {
         viewModelScope.launch { repository.delete(entity) }
+    }
+
+    fun deleteAll(entities: List<MediaEntity>) {
+        viewModelScope.launch {
+            entities.forEach { repository.delete(it) }
+        }
+    }
+
+    fun addToAlbum(albumId: Long, mediaIds: List<Long>) {
+        viewModelScope.launch {
+            mediaIds.forEach { albumRepository.addToAlbum(albumId, it) }
+        }
+    }
+
+    fun createAlbum(name: String, description: String = "", onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val id = albumRepository.createAlbum(name, description)
+            onCreated(id)
+        }
     }
 
     private fun comparatorFor(sort: LibrarySort): Comparator<MediaEntity> =

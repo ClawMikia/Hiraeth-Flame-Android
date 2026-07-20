@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/selection_bar"
+    android:layout_width="match_parent"
+    android:layout_height="56dp"
+    android:layout_gravity="bottom"
+    android:background="@color/bg_elevated"
+    android:elevation="8dp"
+    android:gravity="center_vertical"
+    android:orientation="horizontal"
+    android:paddingHorizontal="8dp"
+    android:visibility="gone">
+
+    <TextView
+        android:id="@+id/selection_count"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:paddingStart="8dp"
+        android:paddingEnd="4dp"
+        android:textColor="@color/neon_violet"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <ImageButton
+        android:id="@+id/btn_select_all"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/select_all"
+        android:src="@drawable/ic_select_all"
+        android:padding="8dp"
+        app:tint="@color/text_primary" />
+
+    <ImageButton
+        android:id="@+id/btn_deselect_all"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/deselect_all"
+        android:src="@drawable/ic_deselect_all"
+        android:padding="8dp"
+        app:tint="@color/text_primary" />
+
+    <ImageButton
+        android:id="@+id/btn_move_to_album"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/move_to_album"
+        android:src="@drawable/ic_move_to_album"
+        android:padding="8dp"
+        app:tint="@color/text_primary" />
+
+    <ImageButton
+        android:id="@+id/btn_export_selected"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/export_selected"
+        android:src="@drawable/ic_export"
+        android:padding="8dp"
+        app:tint="@color/text_primary" />
+
+    <ImageButton
+        android:id="@+id/btn_delete_selected"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="@string/delete_selected"
+        android:src="@android:drawable/ic_menu_delete"
+        android:padding="8dp"
+        app:tint="@color/neon_magenta" />
+
+</LinearLayout>

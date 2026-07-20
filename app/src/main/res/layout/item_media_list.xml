@@ -19,6 +19,15 @@
         android:orientation="horizontal"
         android:padding="10dp">
 
+        <!-- Selection checkbox -->
+        <CheckBox
+            android:id="@+id/selection_checkbox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginEnd="4dp"
+            android:buttonTint="@color/neon_violet"
+            android:visibility="gone" />
+
         <!-- Thumbnail with rounded corners -->
         <com.google.android.material.card.MaterialCardView
             android:layout_width="@dimen/list_thumbnail_width"

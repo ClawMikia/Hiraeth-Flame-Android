@@ -48,6 +48,9 @@ class AlbumDetailViewModel(
     val availableMedia: StateFlow<List<MediaEntity>> = mediaRepository.observeAll()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
+    val albums: StateFlow<List<AlbumWithMedia>> = albumRepository.observeAlbums()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     fun setFilter(query: String) {
         _filter.value = query
     }
@@ -78,6 +81,25 @@ class AlbumDetailViewModel(
         }
     }
 
+    fun deleteMedia(entities: List<MediaEntity>) {
+        viewModelScope.launch {
+            entities.forEach { mediaRepository.delete(it) }
+        }
+    }
+
+    fun addToAlbum(targetAlbumId: Long, mediaIds: List<Long>) {
+        viewModelScope.launch {
+            mediaIds.forEach { albumRepository.addToAlbum(targetAlbumId, it) }
+        }
+    }
+
+    fun createAlbum(name: String, description: String = "", onCreated: (Long) -> Unit) {
+        viewModelScope.launch {
+            val id = albumRepository.createAlbum(name, description)
+            onCreated(id)
+        }
+    }
+
     fun exportToZip(context: Context, destUri: Uri, onDone: (Boolean) -> Unit) {
         val awm = albumWithMedia.value ?: return
         viewModelScope.launch {
@@ -102,6 +124,35 @@ class AlbumDetailViewModel(
                     true
                 } catch (e: Exception) {
                     Log.e("AlbumDetailVM", "Zip export failed", e)
+                    false
+                }
+            }
+            _isExporting.value = false
+            onDone(success)
+        }
+    }
+
+    fun exportSelectedToZip(context: Context, selected: List<MediaEntity>, destUri: Uri, onDone: (Boolean) -> Unit) {
+        viewModelScope.launch {
+            _isExporting.value = true
+            val success = withContext(Dispatchers.IO) {
+                try {
+                    context.contentResolver.openOutputStream(destUri)?.use { os ->
+                        ZipOutputStream(BufferedOutputStream(os)).use { zos ->
+                            selected.forEach { media ->
+                                val file = mediaRepository.resolveFile(media)
+                                if (file.exists()) {
+                                    val entry = ZipEntry(file.name)
+                                    zos.putNextEntry(entry)
+                                    file.inputStream().use { input -> input.copyTo(zos) }
+                                    zos.closeEntry()
+                                }
+                            }
+                        }
+                    }
+                    true
+                } catch (e: Exception) {
+                    Log.e("AlbumDetailVM", "Selected zip export failed", e)
                     false
                 }
             }

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <TextView
+        android:id="@+id/format_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="@string/choose_format"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        android:layout_marginBottom="12dp" />
+
+    <RadioGroup
+        android:id="@+id/format_group"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content">
+
+        <RadioButton
+            android:id="@+id/format_jpg"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="JPG"
+            android:textColor="@color/text_primary"
+            android:buttonTint="@color/neon_violet" />
+
+        <RadioButton
+            android:id="@+id/format_png"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="PNG"
+            android:textColor="@color/text_primary"
+            android:buttonTint="@color/neon_violet" />
+
+        <RadioButton
+            android:id="@+id/format_mp4"
+            android:layout_width="match_parent"
+            android:layout_height="48dp"
+            android:text="MP4 (original)"
+            android:textColor="@color/text_primary"
+            android:buttonTint="@color/neon_violet"
+            android:visibility="gone" />
+
+    </RadioGroup>
+
+</LinearLayout>

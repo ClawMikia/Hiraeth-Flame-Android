@@ -16,7 +16,8 @@ class MediaLibraryAdapter(
     private val container: AppContainer,
     private var gridMode: Boolean,
     private val onItemClick: (Long) -> Unit,
-    private val onHeaderClick: (Long) -> Unit = {}
+    private val onHeaderClick: (Long) -> Unit = {},
+    private val onLongClick: (Long) -> Unit = {}
 ) : ListAdapter<LibraryListItem, RecyclerView.ViewHolder>(DIFF) {
 
     private var selectionMode = false
@@ -57,10 +58,33 @@ class MediaLibraryAdapter(
         notifyDataSetChanged()
     }
 
+    fun enterSelectionModeWithItem(id: Long, listener: (Int) -> Unit) {
+        selectionMode = true
+        selectedIds.clear()
+        selectedIds.add(id)
+        onSelectionChanged = listener
+        notifyDataSetChanged()
+        onSelectionChanged?.invoke(selectedIds.size)
+    }
+
     fun exitSelectionMode() {
         selectionMode = false
         selectedIds.clear()
         onSelectionChanged = null
+        notifyDataSetChanged()
+    }
+
+    fun selectAll() {
+        selectedIds.clear()
+        currentList.filterIsInstance<LibraryListItem.Media>()
+            .forEach { selectedIds.add(it.entity.id) }
+        onSelectionChanged?.invoke(selectedIds.size)
+        notifyDataSetChanged()
+    }
+
+    fun deselectAll() {
+        selectedIds.clear()
+        onSelectionChanged?.invoke(0)
         notifyDataSetChanged()
     }
 
@@ -69,6 +93,8 @@ class MediaLibraryAdapter(
             .map { it.entity }
             .filter { it.id in selectedIds }
     }
+
+    fun getSelectedCount(): Int = selectedIds.size
 
     override fun getItemViewType(position: Int): Int {
         val item = getItem(position)
@@ -108,12 +134,21 @@ class MediaLibraryAdapter(
                     holder.binding.title.text = entity.displayName
                     holder.binding.subtitle.text = if (entity.isVideo) "VIDEO" else "PHOTO"
                     holder.binding.root.alpha = if (selectionMode && !isSelected) 0.5f else 1.0f
+                    holder.binding.selectionCheck.visibility = if (selectionMode && isSelected) android.view.View.VISIBLE else android.view.View.GONE
                     holder.itemView.setOnClickListener {
                         if (selectionMode) {
                             toggleSelection(entity.id)
                         } else {
                             onItemClick(entity.id)
                         }
+                    }
+                    holder.itemView.setOnLongClickListener {
+                        if (!selectionMode) {
+                            onLongClick(entity.id)
+                        } else {
+                            toggleSelection(entity.id)
+                        }
+                        true
                     }
                 }
                 is ListVH -> {
@@ -123,12 +158,22 @@ class MediaLibraryAdapter(
                     holder.binding.subtitle.text =
                         if (entity.isVideo) "Video · $sizeKb KB" else "Photo · $sizeKb KB"
                     holder.binding.root.alpha = if (selectionMode && !isSelected) 0.5f else 1.0f
+                    holder.binding.selectionCheckbox.visibility = if (selectionMode) android.view.View.VISIBLE else android.view.View.GONE
+                    holder.binding.selectionCheckbox.isChecked = isSelected
                     holder.itemView.setOnClickListener {
                         if (selectionMode) {
                             toggleSelection(entity.id)
                         } else {
                             onItemClick(entity.id)
                         }
+                    }
+                    holder.itemView.setOnLongClickListener {
+                        if (!selectionMode) {
+                            onLongClick(entity.id)
+                        } else {
+                            toggleSelection(entity.id)
+                        }
+                        true
                     }
                 }
             }
@@ -140,6 +185,10 @@ class MediaLibraryAdapter(
             selectedIds.remove(id)
         } else {
             selectedIds.add(id)
+        }
+        if (selectedIds.isEmpty() && selectionMode) {
+            exitSelectionMode()
+            return
         }
         onSelectionChanged?.invoke(selectedIds.size)
         notifyDataSetChanged()

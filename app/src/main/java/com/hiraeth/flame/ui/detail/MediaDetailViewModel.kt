@@ -1,5 +1,7 @@
 package com.hiraeth.flame.ui.detail
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -8,6 +10,7 @@ import com.hiraeth.flame.data.db.AlbumWithMedia
 import com.hiraeth.flame.data.db.MediaEntity
 import com.hiraeth.flame.data.repository.AlbumRepository
 import com.hiraeth.flame.data.repository.MediaRepository
+import com.hiraeth.flame.util.ExportHelper
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -114,6 +117,19 @@ class MediaDetailViewModel(
             } catch (e: Exception) {
                 Log.e("MediaDetailVM", "Failed to add to album", e)
             }
+        }
+    }
+
+    fun exportMedia(context: Context, destUri: Uri, format: ExportHelper.ImageFormat?, onDone: (Boolean) -> Unit) {
+        val currentMedia = media.value ?: return
+        viewModelScope.launch {
+            val file = repository.resolveFile(currentMedia)
+            val success = if (currentMedia.isVideo) {
+                ExportHelper.exportSingleVideo(context, file, destUri)
+            } else {
+                ExportHelper.exportSingleImage(context, file, destUri, format ?: ExportHelper.ImageFormat.JPG)
+            }
+            onDone(success)
         }
     }
 

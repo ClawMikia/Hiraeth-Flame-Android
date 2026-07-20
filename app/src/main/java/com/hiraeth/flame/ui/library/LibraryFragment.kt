@@ -14,6 +14,7 @@ import android.view.ViewGroup
 import android.widget.ArrayAdapter
 import android.widget.EditText
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
@@ -36,6 +37,9 @@ import com.hiraeth.flame.ui.util.AppPermissions
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.BufferedOutputStream
+import java.util.zip.ZipEntry
+import java.util.zip.ZipOutputStream
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
@@ -53,6 +57,13 @@ class LibraryFragment : Fragment() {
     private lateinit var adapter: MediaLibraryAdapter
 
     private var targetCombineCount = 0
+
+    private val createZipLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("application/zip")) { uri ->
+        if (uri != null) {
+            val selected = adapter.getSelectedItems()
+            exportSelectedToZip(selected, uri)
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentLibraryBinding.inflate(inflater, container, false)
@@ -72,10 +83,28 @@ class LibraryFragment : Fragment() {
             },
             onHeaderClick = { albumId ->
                 viewModel.toggleAlbumExpanded(albumId)
+            },
+            onLongClick = { id ->
+                adapter.enterSelectionModeWithItem(id) { count ->
+                    updateSelectionBar(count)
+                }
+                updateSelectionBar(adapter.getSelectedCount())
             }
         )
         binding.recycler.adapter = adapter
         applyLayoutManager()
+
+        requireActivity().onBackPressedDispatcher.addCallback(viewLifecycleOwner, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                if (adapter.isSelectionMode()) {
+                    adapter.exitSelectionMode()
+                    updateSelectionBar(0)
+                } else {
+                    isEnabled = false
+                    requireActivity().onBackPressedDispatcher.onBackPressed()
+                }
+            }
+        })
 
         val sortLabels = LibrarySort.entries.map { it.name.replace(Regex("([a-z])([A-Z])"), "$1 $2") }
         binding.sortSpinner.adapter = ArrayAdapter(requireContext(), android.R.layout.simple_spinner_dropdown_item, sortLabels)
@@ -150,9 +179,12 @@ class LibraryFragment : Fragment() {
                             showMultiDeleteConfirmation(selected)
                         } else {
                             adapter.exitSelectionMode()
+                            updateSelectionBar(0)
                         }
                     } else {
-                        adapter.enterSelectionMode { }
+                        adapter.enterSelectionMode { count ->
+                            updateSelectionBar(count)
+                        }
                         Toast.makeText(requireContext(), "Select items then click Delete again", Toast.LENGTH_SHORT).show()
                     }
                     true
@@ -160,6 +192,8 @@ class LibraryFragment : Fragment() {
                 else -> false
             }
         }
+
+        setupSelectionBar()
 
         viewLifecycleOwner.lifecycleScope.launch {
             viewLifecycleOwner.repeatOnLifecycle(Lifecycle.State.STARTED) {
@@ -183,18 +217,202 @@ class LibraryFragment : Fragment() {
         }
     }
 
+    private fun setupSelectionBar() {
+        binding.selectionCount.text = getString(R.string.files_selected, 0)
+
+        binding.btnSelectAll.setOnClickListener {
+            adapter.selectAll()
+            updateSelectionBar(adapter.getSelectedCount())
+        }
+
+        binding.btnDeselectAll.setOnClickListener {
+            adapter.deselectAll()
+            updateSelectionBar(0)
+        }
+
+        binding.btnMoveToAlbum.setOnClickListener {
+            val selected = adapter.getSelectedItems()
+            if (selected.isNotEmpty()) {
+                showMoveToAlbumDialog(selected.map { it.id })
+            }
+        }
+
+        binding.btnExportSelected.setOnClickListener {
+            val selected = adapter.getSelectedItems()
+            if (selected.isNotEmpty()) {
+                createZipLauncher.launch("selected_media.zip")
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.select_items_to_export), Toast.LENGTH_SHORT).show()
+            }
+        }
+
+        binding.btnDeleteSelected.setOnClickListener {
+            val selected = adapter.getSelectedItems()
+            if (selected.isNotEmpty()) {
+                showMultiDeleteConfirmation(selected)
+            }
+        }
+    }
+
+    private fun updateSelectionBar(count: Int) {
+        if (count > 0 && adapter.isSelectionMode()) {
+            binding.selectionBar.visibility = View.VISIBLE
+            binding.selectionCount.text = getString(R.string.files_selected, count)
+            binding.fabImport.visibility = View.GONE
+        } else {
+            binding.selectionBar.visibility = View.GONE
+            binding.fabImport.visibility = View.VISIBLE
+        }
+    }
+
+    private fun showMoveToAlbumDialog(mediaIds: List<Long>) {
+        val albums = viewModel.albums.value
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_move_to_album, null)
+        val recyclerAlbums = dialogView.findViewById<androidx.recyclerview.widget.RecyclerView>(R.id.recycler_albums)
+        val btnCreateNew = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_create_new_album)
+
+        val albumNames = albums.map { it.album.name }.toMutableList()
+        albumNames.add(0, "None (remove from all albums)")
+
+        recyclerAlbums.layoutManager = LinearLayoutManager(requireContext())
+        recyclerAlbums.adapter = object : androidx.recyclerview.widget.RecyclerView.Adapter<androidx.recyclerview.widget.RecyclerView.ViewHolder>() {
+            override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): androidx.recyclerview.widget.RecyclerView.ViewHolder {
+                val tv = android.widget.TextView(parent.context).apply {
+                    layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120)
+                    setPadding(48, 0, 48, 0)
+                    gravity = android.view.Gravity.CENTER_VERTICAL
+                    setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, 16f)
+                    setTextColor(ContextCompat.getColor(context, R.color.text_primary))
+                    background = android.util.TypedValue().let { tv ->
+                        android.graphics.drawable.ColorDrawable().apply {
+                            color = ContextCompat.getColor(context, R.color.bg_card)
+                        }
+                    }
+                }
+                return object : androidx.recyclerview.widget.RecyclerView.ViewHolder(tv) {}
+            }
+
+            override fun getItemCount(): Int = albumNames.size
+
+            override fun onBindViewHolder(holder: androidx.recyclerview.widget.RecyclerView.ViewHolder, position: Int) {
+                (holder.itemView as android.widget.TextView).text = albumNames[position]
+                holder.itemView.setOnClickListener {
+                    if (position == 0) {
+                        // "None" option - remove from all albums
+                        mediaIds.forEach { mediaId ->
+                            albums.forEach { awm ->
+                                if (awm.media.any { it.id == mediaId }) {
+                                    viewModel.addToAlbum(awm.album.id, emptyList())
+                                }
+                            }
+                        }
+                        adapter.exitSelectionMode()
+                        updateSelectionBar(0)
+                        Toast.makeText(requireContext(), "Removed from all albums", Toast.LENGTH_SHORT).show()
+                    } else {
+                        val targetAlbum = albums[position - 1]
+                        viewModel.addToAlbum(targetAlbum.album.id, mediaIds)
+                        adapter.exitSelectionMode()
+                        updateSelectionBar(0)
+                        Toast.makeText(requireContext(), "Moved to ${targetAlbum.album.name}", Toast.LENGTH_SHORT).show()
+                    }
+                }
+            }
+        }
+
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setView(dialogView)
+            .create()
+
+        btnCreateNew.setOnClickListener {
+            dialog.dismiss()
+            showCreateAlbumAndMoveDialog(mediaIds)
+        }
+
+        dialog.show()
+    }
+
+    private fun showCreateAlbumAndMoveDialog(mediaIds: List<Long>) {
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_new_album, null)
+        val inputName = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.album_name_input)
+        val inputDesc = dialogView.findViewById<com.google.android.material.textfield.TextInputEditText>(R.id.description_input)
+        val btnCancel = dialogView.findViewById<View>(R.id.btn_cancel)
+        val btnCreate = dialogView.findViewById<com.google.android.material.button.MaterialButton>(R.id.btn_create)
+
+        val titleText = (dialogView as? ViewGroup)?.let { findFirstTextView(it) }
+        titleText?.text = "Create Album"
+        btnCreate.text = "Create & Move"
+
+        val dialog = MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setView(dialogView)
+            .create()
+
+        btnCancel.setOnClickListener { dialog.dismiss() }
+        btnCreate.setOnClickListener {
+            val name = inputName.text?.toString().orEmpty().trim()
+            val desc = inputDesc.text?.toString().orEmpty().trim()
+            if (name.isNotBlank()) {
+                viewModel.createAlbum(name, desc) { albumId ->
+                    viewModel.addToAlbum(albumId, mediaIds)
+                    requireActivity().runOnUiThread {
+                        adapter.exitSelectionMode()
+                        updateSelectionBar(0)
+                        Toast.makeText(requireContext(), "Created '$name' and moved items", Toast.LENGTH_SHORT).show()
+                    }
+                }
+                dialog.dismiss()
+            }
+        }
+        dialog.show()
+    }
+
+    private fun exportSelectedToZip(selected: List<com.hiraeth.flame.data.db.MediaEntity>, destUri: android.net.Uri) {
+        viewLifecycleOwner.lifecycleScope.launch {
+            Toast.makeText(requireContext(), getString(R.string.exporting), Toast.LENGTH_SHORT).show()
+            val success = withContext(Dispatchers.IO) {
+                try {
+                    requireContext().contentResolver.openOutputStream(destUri)?.use { os ->
+                        ZipOutputStream(BufferedOutputStream(os)).use { zos ->
+                            selected.forEach { media ->
+                                val file = container.mediaRepository.resolveFile(media)
+                                if (file.exists()) {
+                                    val entry = ZipEntry(file.name)
+                                    zos.putNextEntry(entry)
+                                    file.inputStream().use { input -> input.copyTo(zos) }
+                                    zos.closeEntry()
+                                }
+                            }
+                        }
+                    }
+                    true
+                } catch (e: Exception) {
+                    Log.e("LibraryFragment", "Zip export failed", e)
+                    false
+                }
+            }
+            if (success) {
+                adapter.exitSelectionMode()
+                updateSelectionBar(0)
+                Toast.makeText(requireContext(), getString(R.string.export_complete), Toast.LENGTH_SHORT).show()
+            } else {
+                Toast.makeText(requireContext(), getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
+
     private fun showMultiDeleteConfirmation(items: List<com.hiraeth.flame.data.db.MediaEntity>) {
         MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
-            .setTitle("Delete ${items.size} items?")
-            .setMessage("Are you sure you want to permanently delete these items?")
-            .setPositiveButton("Delete") { _, _ ->
+            .setTitle(getString(R.string.delete_selected_title, items.size))
+            .setMessage(getString(R.string.delete_selected_message))
+            .setPositiveButton(R.string.action_delete) { _, _ ->
                 viewLifecycleOwner.lifecycleScope.launch {
-                    items.forEach { viewModel.delete(it) }
+                    viewModel.deleteAll(items)
                     adapter.exitSelectionMode()
+                    updateSelectionBar(0)
                     Toast.makeText(requireContext(), "Items deleted", Toast.LENGTH_SHORT).show()
                 }
             }
-            .setNegativeButton("Cancel", null)
+            .setNegativeButton(R.string.action_cancel, null)
             .show()
     }
 
@@ -223,6 +441,7 @@ class LibraryFragment : Fragment() {
         targetCombineCount = count
         Toast.makeText(requireContext(), "Select $count images to combine", Toast.LENGTH_LONG).show()
         adapter.enterSelectionMode { selectedCount ->
+            updateSelectionBar(selectedCount)
             if (selectedCount == targetCombineCount) {
                 combineSelectedImages()
             }
@@ -232,6 +451,7 @@ class LibraryFragment : Fragment() {
     private fun combineSelectedImages() {
         val selected = adapter.getSelectedItems()
         adapter.exitSelectionMode()
+        updateSelectionBar(0)
         
         if (selected.any { it.isVideo }) {
             Toast.makeText(requireContext(), "Only images can be combined", Toast.LENGTH_SHORT).show()
@@ -323,6 +543,19 @@ class LibraryFragment : Fragment() {
         } else {
             binding.recycler.layoutManager = LinearLayoutManager(requireContext())
         }
+    }
+
+    private fun findFirstTextView(viewGroup: ViewGroup): android.widget.TextView? {
+        for (i in 0 until viewGroup.childCount) {
+            val child = viewGroup.getChildAt(i)
+            if (child is android.widget.TextView && child !is com.google.android.material.button.MaterialButton && child !is com.google.android.material.textfield.TextInputEditText) {
+                return child
+            } else if (child is ViewGroup) {
+                val found = findFirstTextView(child)
+                if (found != null) return found
+            }
+        }
+        return null
     }
 
     private fun hasAllPermissions(): Boolean =

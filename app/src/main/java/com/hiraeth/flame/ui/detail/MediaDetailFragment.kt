@@ -5,6 +5,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Lifecycle
@@ -21,6 +22,7 @@ import com.hiraeth.flame.R
 import com.hiraeth.flame.data.db.AlbumWithMedia
 import com.hiraeth.flame.databinding.FragmentMediaDetailBinding
 import com.hiraeth.flame.di.AppContainer
+import com.hiraeth.flame.util.ExportHelper
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.launch
 import kotlin.math.abs
@@ -42,6 +44,29 @@ class MediaDetailFragment : Fragment() {
     private lateinit var pagerAdapter: MediaPagerAdapter
     private var cachedAlbums: List<AlbumWithMedia> = emptyList()
     private var isInitialJumpDone = false
+
+    private var pendingExportFormat: ExportHelper.ImageFormat? = null
+
+    private val exportLauncher = registerForActivityResult(ActivityResultContracts.CreateDocument("*/*")) { uri ->
+        if (uri != null) {
+            val media = viewModel.media.value ?: return@registerForActivityResult
+            val mimeType = if (media.isVideo) "video/mp4" else {
+                when (pendingExportFormat) {
+                    ExportHelper.ImageFormat.PNG -> "image/png"
+                    ExportHelper.ImageFormat.JPG -> "image/jpeg"
+                    null -> "image/jpeg"
+                }
+            }
+            // Re-launch with correct MIME type by reusing the URI directly
+            viewModel.exportMedia(requireContext(), uri, pendingExportFormat) { success ->
+                if (success) {
+                    Toast.makeText(requireContext(), getString(R.string.export_complete), Toast.LENGTH_SHORT).show()
+                } else {
+                    Toast.makeText(requireContext(), getString(R.string.export_failed), Toast.LENGTH_SHORT).show()
+                }
+            }
+        }
+    }
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View {
         _binding = FragmentMediaDetailBinding.inflate(inflater, container, false)
@@ -114,6 +139,8 @@ class MediaDetailFragment : Fragment() {
             }
         }
 
+        binding.btnExport.setOnClickListener { showFormatPicker() }
+
         binding.btnDelete.setOnClickListener {
             if (albumId != -1L) {
                 showRemoveFromAlbumConfirmation()
@@ -185,6 +212,47 @@ class MediaDetailFragment : Fragment() {
                 }
             }
         }
+    }
+
+    private fun showFormatPicker() {
+        val currentMedia = viewModel.media.value ?: return
+        val dialogView = LayoutInflater.from(requireContext()).inflate(R.layout.dialog_format_picker, null)
+        val radioGroup = dialogView.findViewById<android.widget.RadioGroup>(R.id.format_group)
+        val jpgOption = dialogView.findViewById<android.widget.RadioButton>(R.id.format_jpg)
+        val pngOption = dialogView.findViewById<android.widget.RadioButton>(R.id.format_png)
+        val mp4Option = dialogView.findViewById<android.widget.RadioButton>(R.id.format_mp4)
+
+        if (currentMedia.isVideo) {
+            jpgOption.visibility = View.GONE
+            pngOption.visibility = View.GONE
+            mp4Option.visibility = View.VISIBLE
+            mp4Option.isChecked = true
+        } else {
+            jpgOption.visibility = View.VISIBLE
+            pngOption.visibility = View.VISIBLE
+            mp4Option.visibility = View.GONE
+            jpgOption.isChecked = true
+        }
+
+        MaterialAlertDialogBuilder(requireContext(), R.style.Dialog_Neon)
+            .setView(dialogView)
+            .setPositiveButton("Export") { _, _ ->
+                val checkedId = radioGroup.checkedRadioButtonId
+                if (currentMedia.isVideo) {
+                    pendingExportFormat = null
+                    exportLauncher.launch("${currentMedia.displayName}.mp4")
+                } else {
+                    val format = when (checkedId) {
+                        R.id.format_png -> ExportHelper.ImageFormat.PNG
+                        else -> ExportHelper.ImageFormat.JPG
+                    }
+                    pendingExportFormat = format
+                    val ext = if (format == ExportHelper.ImageFormat.PNG) "png" else "jpg"
+                    exportLauncher.launch("${currentMedia.displayName}.$ext")
+                }
+            }
+            .setNegativeButton("Cancel", null)
+            .show()
     }
 
     private fun showDeleteConfirmation() {
